@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "replastbot"
+version = "0.1.0"
+description = ""
+authors = ["akm77 <aleksey.kotryakhov@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+aiogram = "^2.21"
+SQLAlchemy = "^1.4.39"
+aiosqlite = "^0.17.0"
+aioredis = "^2.0.1"
+environs = "^9.5.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

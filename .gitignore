@@ -61,3 +61,7 @@ venv.bak/
 .pyre/
 .idea/*
 .env
+
+db/
+selenium/
+!/tgbot/db/bot.db-sqlite
