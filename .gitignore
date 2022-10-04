@@ -64,4 +64,3 @@ venv.bak/
 
 db/
 selenium/
-!/tgbot/db/bot.db-sqlite
