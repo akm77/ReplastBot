@@ -6,6 +6,7 @@ from typing import Optional
 from sqlalchemy import Column, Integer, ForeignKey, String, text, CheckConstraint, Boolean, func, DateTime, \
     select
 from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy.engine import ChunkedIteratorResult
 from sqlalchemy.orm import sessionmaker, relationship, joinedload, aliased, backref
 from sqlalchemy.sql import expression
 
@@ -72,11 +73,11 @@ class ERPAccountBalance(BaseModel):
     __tablename__ = "erp_acc_balance"
     account_no = Column(String(50), ForeignKey('erp_coa.account_no', ondelete="RESTRICT", onupdate="CASCADE"),
                         primary_key=True)
-    entry_dt = Column(DateTime(),
-                      ForeignKey('erp_acc_entry.entry_dt', ondelete="RESTRICT", onupdate="CASCADE"),
-                      primary_key=True, index=True, )
-    debit = Column(AccountingInteger, nullable=False, server_default=text("0"))
-    credit = Column(AccountingInteger, nullable=False, server_default=text("0"))
+    balance_date = Column(DateTime(), primary_key=True, index=True, )
+    opening_dr_amount = Column(AccountingInteger, nullable=False, server_default=text("0"))
+    opening_cr_amount = Column(AccountingInteger, nullable=False, server_default=text("0"))
+    dr_amount = Column(AccountingInteger, nullable=False, server_default=text("0"))
+    cr_amount = Column(AccountingInteger, nullable=False, server_default=text("0"))
     account = relationship("ERPChartOfAccount", backref=backref("account_balance", uselist=False))
 
 
@@ -118,13 +119,24 @@ def check_active_passive_balance(account: ERPChartOfAccount, debit, credit) -> b
 
 async def get_last_account_balance(Session: sessionmaker,
                                    account: ERPChartOfAccount) -> ERPAccountBalance:
-    subquery = select(func.max(ERPAccountBalance.entry_dt)
+    subquery = select(func.max(ERPAccountBalance.balance_date)
                       ).where(ERPAccountBalance.account_no == account.account_no).subquery()
     select_statement = select(ERPAccountBalance).where(ERPAccountBalance.account_no == account.account_no,
-                                                       ERPAccountBalance.entry_dt == subquery)
+                                                       ERPAccountBalance.balance_date == subquery)
     async with Session() as session:
         result = await session.execute(select_statement)
         return result.scalar()
+
+
+async def check_entry_dt(Session: sessionmaker, entry_dt: datetime.datetime) -> Optional[bool]:
+    select_statement = select(func.max(ERPAccountingEntry.entry_dt).label("last_entry_dt"))
+    async with Session() as session:
+        result: ChunkedIteratorResult = await session.execute(select_statement)
+        last_entry = result.one_or_none()
+        if last_entry and last_entry["last_entry_dt"] and last_entry["last_entry_dt"] >= entry_dt:
+            logger.error(f"The date and time {entry_dt: %d.%m.Y %H:%M:%S} incorrectly. There is a later entry.")
+            raise ValueError(f"The date and time {entry_dt: %d.%m.Y %H:%M:%S} incorrectly. There is a later entry.")
+        return True
 
 
 async def add_entry(Session: sessionmaker, operation_id: int, dr: str, cr: str, amount: Decimal, **kwargs):
@@ -152,16 +164,32 @@ async def add_entry(Session: sessionmaker, operation_id: int, dr: str, cr: str, 
         raise ValueError("Account can't be used in entry.")
 
     dr_account_balance = await get_last_account_balance(Session, dr_account)
-    dr_debit = dr_account_balance.debit + amount if dr_account_balance else amount
-    dr_credit = dr_account_balance.credit if dr_account_balance else Decimal(0)
-    check_active_passive_balance(dr_account, dr_debit, dr_credit)
-
     cr_account_balance = await get_last_account_balance(Session, cr_account)
-    cr_debit = cr_account_balance.debit if cr_account_balance else Decimal(0)
-    cr_credit = cr_account_balance.credit + amount if cr_account_balance else amount
-    check_active_passive_balance(cr_account, cr_debit, cr_credit)
 
     entry_dt = kwargs['entry_dt'] if kwargs.get('entry_dt') else datetime.datetime.now()
+    await check_entry_dt(Session, entry_dt)
+
+    dr_debit_amount = Decimal(0)
+    dr_credit_amount = Decimal(0)
+    cr_debit_amount = Decimal(0)
+    cr_credit_amount = Decimal(0)
+    if dr_account_balance.balance_date < entry_dt.date():
+        dr_values = {"opening_dr_amount": dr_account_balance.dr_amount,
+                     "opening_cr_amount": dr_account_balance.cr_amount}
+        dr_debit_amount = amount
+    elif dr_account_balance.balance_date == entry_dt.date():
+        dr_debit_amount = dr_account_balance.dr_amount + amount
+
+    if cr_account_balance.balance_date < entry_dt.date():
+        cr_values = {"opening_dr_amount": cr_account_balance.dr_amount,
+                     "opening_cr_amount": cr_account_balance.cr_amount}
+    elif cr_account_balance.balance_date == entry_dt.date():
+        cr_credit_amount = cr_account_balance.cr_amount + amount
+
+    check_active_passive_balance(dr_account, dr_debit, dr_credit)
+
+    check_active_passive_balance(cr_account, cr_debit, cr_credit)
+
     if (dr_account_balance and (dr_account_balance.entry_dt > entry_dt)) or \
             (cr_account_balance and (cr_account_balance.entry_dt > entry_dt)):
         logger.error("Wrong %s entry date and time. Account balance for Dr = %s or Cr = %s already exist.",
