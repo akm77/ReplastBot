@@ -1,8 +1,7 @@
-from pprint import pprint
 from typing import Optional, List
 
-from sqlalchemy import Column, Integer, Date, CheckConstraint, func, ForeignKeyConstraint, ForeignKey, text, Computed, \
-    DateTime, String, Boolean, insert, select, update, delete, desc
+from sqlalchemy import Column, Integer, Date, CheckConstraint, func, ForeignKeyConstraint, ForeignKey, text, String, \
+    Boolean, insert, select, update, delete, desc
 from sqlalchemy.orm import relationship, backref, sessionmaker, joinedload
 from sqlalchemy.sql import expression
 

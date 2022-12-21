@@ -8,6 +8,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from tgbot.config import Config
 from tgbot.misc.utils import value_to_decimal
 
+
 meta = MetaData(naming_convention={
     "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",
@@ -34,10 +35,21 @@ class FinanceInteger(types.TypeDecorator):
     cache_ok = True
 
     def process_bind_param(self, value, dialect):
-        return int(value * 100) if value else None
+        return int(value * 100) if value is not None else None
 
     def process_result_value(self, value, dialect):
-        return value_to_decimal(value / 100, decimal_places=2) if value else None
+        return value_to_decimal(value / 100, decimal_places=2) if value is not None else None
+
+
+class AccountingInteger(types.TypeDecorator):
+    impl = types.Integer
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        return int(value * 10_000) if value is not None else None
+
+    def process_result_value(self, value, dialect):
+        return value_to_decimal(value / 10_000, decimal_places=4) if value is not None else None
 
 
 def column_list(db_class) -> Optional[list]:

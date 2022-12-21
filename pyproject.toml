@@ -11,6 +11,7 @@ SQLAlchemy = "^1.4.39"
 aiosqlite = "^0.17.0"
 aioredis = "^2.0.1"
 environs = "^9.5.0"
+SQLAlchemy-Utils = "^0.38.3"
 
 [tool.poetry.dev-dependencies]
 
