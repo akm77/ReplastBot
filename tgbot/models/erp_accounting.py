@@ -1,10 +1,11 @@
 import datetime
 import logging
 from decimal import Decimal
+from pprint import pprint
 from typing import Optional
 
 from sqlalchemy import Column, Integer, ForeignKey, String, text, CheckConstraint, Boolean, func, DateTime, \
-    select
+    select, Date
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.engine import ChunkedIteratorResult
 from sqlalchemy.orm import sessionmaker, relationship, joinedload, aliased, backref
@@ -73,11 +74,11 @@ class ERPAccountBalance(BaseModel):
     __tablename__ = "erp_acc_balance"
     account_no = Column(String(50), ForeignKey('erp_coa.account_no', ondelete="RESTRICT", onupdate="CASCADE"),
                         primary_key=True)
-    balance_date = Column(DateTime(), primary_key=True, index=True, )
-    opening_dr_amount = Column(AccountingInteger, nullable=False, server_default=text("0"))
-    opening_cr_amount = Column(AccountingInteger, nullable=False, server_default=text("0"))
-    dr_amount = Column(AccountingInteger, nullable=False, server_default=text("0"))
-    cr_amount = Column(AccountingInteger, nullable=False, server_default=text("0"))
+    balance_date = Column(Date(), primary_key=True, index=True, )
+    dr_turnover = Column(AccountingInteger, nullable=False, server_default=text("0"))
+    cr_turnover = Column(AccountingInteger, nullable=False, server_default=text("0"))
+    dr_balance = Column(AccountingInteger, nullable=False, server_default=text("0"))
+    cr_balance = Column(AccountingInteger, nullable=False, server_default=text("0"))
     account = relationship("ERPChartOfAccount", backref=backref("account_balance", uselist=False))
 
 
@@ -93,16 +94,27 @@ async def get_account_from_account_no(Session: sessionmaker, account_no: str) ->
         result = await session.execute(statement)
         return result.scalar()
 
-    # ledger_date = Column(Date(), primary_key=True, server_default=func.date('now', 'localtime'))
-    # account_id = Column(Integer, ForeignKey('erp_coa.id', ondelete="RESTRICT", onupdate="CASCADE"), primary_key=True)
-    # side = Column(String(2), CheckConstraint("side IN ('Dr', 'Cr')", name="check_side"), primary_key=True)
-    # opening_balance = (Column(AccountingInteger, nullable=False))
-    # amount = Column(AccountingInteger, nullable=False)
-    # currency_amount = Column(AccountingInteger)
-    # currency_iso_code = Column(String(3))
-    # quantity = Column(AccountingInteger)
-    # measure_unit = Column(String(10),
-    #                       ForeignKey('erp_measure_unit.short_name', ondelete="RESTRICT", onupdate="CASCADE"))
+
+async def get_last_account_balance(Session: sessionmaker,
+                                   account: ERPChartOfAccount) -> ERPAccountBalance:
+    subquery = select(func.max(ERPAccountBalance.balance_date)
+                      ).where(ERPAccountBalance.account_no == account.account_no).scalar_subquery()
+    select_statement = select(ERPAccountBalance).where(ERPAccountBalance.account_no == account.account_no,
+                                                       ERPAccountBalance.balance_date == subquery)
+    async with Session() as session:
+        result = await session.execute(select_statement)
+        return result.scalar()
+
+
+async def check_entry_dt(Session: sessionmaker, entry_dt: datetime.datetime) -> Optional[bool]:
+    select_statement = select(func.max(ERPAccountingEntry.entry_dt).label("last_entry_dt"))
+    async with Session() as session:
+        result = await session.execute(select_statement)
+        last_entry = result.one_or_none()
+        if last_entry and last_entry["last_entry_dt"] and last_entry["last_entry_dt"] >= entry_dt:
+            logger.error(f"The date and time {entry_dt: %d.%m.%Y %H:%M:%S} incorrect. There is a later entry.")
+            raise ValueError(f"The date and time {entry_dt: %d.%m.%Y %H:%M:%S} incorrect. There is a later entry.")
+        return True
 
 
 def check_active_passive_balance(account: ERPChartOfAccount, debit, credit) -> bool:
@@ -117,26 +129,66 @@ def check_active_passive_balance(account: ERPChartOfAccount, debit, credit) -> b
     return True
 
 
-async def get_last_account_balance(Session: sessionmaker,
-                                   account: ERPChartOfAccount) -> ERPAccountBalance:
-    subquery = select(func.max(ERPAccountBalance.balance_date)
-                      ).where(ERPAccountBalance.account_no == account.account_no).subquery()
-    select_statement = select(ERPAccountBalance).where(ERPAccountBalance.account_no == account.account_no,
-                                                       ERPAccountBalance.balance_date == subquery)
-    async with Session() as session:
-        result = await session.execute(select_statement)
-        return result.scalar()
+def set_balance_values(balance_date: datetime.date,
+                       account: ERPChartOfAccount,
+                       account_balance: ERPAccountBalance,
+                       amount: Decimal,
+                       side: str) -> Optional[dict]:
+    if side not in ["dr", "cr"]:
+        logger.error(f"Incorrect side parameter {side}. Must be 'dr' or 'cr'.")
+        raise ValueError(f"Incorrect side parameter {side}. Must be 'dr' or 'cr'.")
 
+    opening_dr_balance = Decimal(0)
+    opening_cr_balance = Decimal(0)
+    row = {"account_no": account.account_no,
+           "balance_date": balance_date,
+           "dr_turnover": Decimal(0),
+           "cr_turnover": Decimal(0),
+           "dr_balance": Decimal(0),
+           "cr_balance": Decimal(0)}
 
-async def check_entry_dt(Session: sessionmaker, entry_dt: datetime.datetime) -> Optional[bool]:
-    select_statement = select(func.max(ERPAccountingEntry.entry_dt).label("last_entry_dt"))
-    async with Session() as session:
-        result: ChunkedIteratorResult = await session.execute(select_statement)
-        last_entry = result.one_or_none()
-        if last_entry and last_entry["last_entry_dt"] and last_entry["last_entry_dt"] >= entry_dt:
-            logger.error(f"The date and time {entry_dt: %d.%m.Y %H:%M:%S} incorrectly. There is a later entry.")
-            raise ValueError(f"The date and time {entry_dt: %d.%m.Y %H:%M:%S} incorrectly. There is a later entry.")
-        return True
+    if account_balance is None:
+        match side:
+            case "dr":
+                row["dr_turnover"] = amount
+                row["dr_balance"] = amount
+            case "cr":
+                row["cr_turnover"] = amount
+                row["cr_balance"] = amount
+        check_active_passive_balance(account, row["dr_balance"], row["cr_balance"])
+        return row
+
+    if account_balance.balance_date < balance_date:
+        opening_dr_balance = account_balance.dr_balance
+        opening_cr_balance = account_balance.cr_balance
+        match side:
+            case "dr":
+                row["dr_turnover"] = amount
+            case "cr":
+                row["cr_turnover"] = amount
+    elif account_balance.balance_date == balance_date:
+        opening_dr_balance = account_balance.dr_balance - account_balance.dr_turnover + account_balance.cr_turnover
+        opening_cr_balance = account_balance.cr_balance - account_balance.cr_turnover + account_balance.dr_turnover
+        match side:
+            case "dr":
+                row["dr_turnover"] = account_balance.dr_turnover + amount
+                row["cr_turnover"] = account_balance.cr_turnover
+            case "cr":
+                row["cr_turnover"] = account_balance.cr_turnover + amount
+                row["dr_turnover"] = account_balance.dr_turnover
+    match account.account_kind:
+        case "A":
+            row["dr_balance"] = opening_dr_balance + row["dr_turnover"] - row["cr_turnover"]
+        case "P":
+            row["cr_balance"] = opening_cr_balance + row["cr_turnover"] - row["dr_turnover"]
+        case "AP":
+            balance = opening_dr_balance + row["dr_turnover"] - row["cr_turnover"]
+            row["dr_balance"] = balance if balance >= 0 else 0
+            balance = opening_cr_balance + row["cr_turnover"] - row["dr_turnover"]
+            row["cr_balance"] = balance if balance >= 0 else 0
+
+    check_active_passive_balance(account, row["dr_balance"], row["cr_balance"])
+    return row
 
 
 async def add_entry(Session: sessionmaker, operation_id: int, dr: str, cr: str, amount: Decimal, **kwargs):
@@ -156,6 +208,9 @@ async def add_entry(Session: sessionmaker, operation_id: int, dr: str, cr: str, 
     :param kwargs:
     :return:
     """
+    entry_dt = kwargs['entry_dt'] if kwargs.get('entry_dt') else datetime.datetime.now()
+    await check_entry_dt(Session, entry_dt)
+
     dr_account = await get_account_from_account_no(Session, dr)
     cr_account = await get_account_from_account_no(Session, cr)
     # Check Dr account is valid
@@ -164,54 +219,35 @@ async def add_entry(Session: sessionmaker, operation_id: int, dr: str, cr: str, 
         raise ValueError("Account can't be used in entry.")
 
     dr_account_balance = await get_last_account_balance(Session, dr_account)
+    dr_values = set_balance_values(entry_dt.date(),
+                                   dr_account,
+                                   dr_account_balance,
+                                   amount,
+                                   side="dr")
     cr_account_balance = await get_last_account_balance(Session, cr_account)
+    cr_values = set_balance_values(entry_dt.date(),
+                                   cr_account,
+                                   cr_account_balance,
+                                   amount,
+                                   side="cr")
 
-    entry_dt = kwargs['entry_dt'] if kwargs.get('entry_dt') else datetime.datetime.now()
-    await check_entry_dt(Session, entry_dt)
-
-    dr_debit_amount = Decimal(0)
-    dr_credit_amount = Decimal(0)
-    cr_debit_amount = Decimal(0)
-    cr_credit_amount = Decimal(0)
-    if dr_account_balance.balance_date < entry_dt.date():
-        dr_values = {"opening_dr_amount": dr_account_balance.dr_amount,
-                     "opening_cr_amount": dr_account_balance.cr_amount}
-        dr_debit_amount = amount
-    elif dr_account_balance.balance_date == entry_dt.date():
-        dr_debit_amount = dr_account_balance.dr_amount + amount
-
-    if cr_account_balance.balance_date < entry_dt.date():
-        cr_values = {"opening_dr_amount": cr_account_balance.dr_amount,
-                     "opening_cr_amount": cr_account_balance.cr_amount}
-    elif cr_account_balance.balance_date == entry_dt.date():
-        cr_credit_amount = cr_account_balance.cr_amount + amount
-
-    check_active_passive_balance(dr_account, dr_debit, dr_credit)
-
-    check_active_passive_balance(cr_account, cr_debit, cr_credit)
-
-    if (dr_account_balance and (dr_account_balance.entry_dt > entry_dt)) or \
-            (cr_account_balance and (cr_account_balance.entry_dt > entry_dt)):
-        logger.error("Wrong %s entry date and time. Account balance for Dr = %s or Cr = %s already exist.",
-                     entry_dt.strftime("%H:%M:%S %d.%m.%Y"), dr, cr)
-        raise ValueError("Wrong entry date and time. Account balance already exist.")
     entry_values = {"entry_dt": entry_dt,
                     "operation_id": operation_id,
                     "dr_account_no": dr_account.account_no,
                     "cr_account_no": cr_account.account_no,
                     "amount": amount}
-    insert_account_balance = insert(ERPAccountBalance).values([{"account_no": dr_account.account_no,
-                                                                "entry_dt": entry_dt,
-                                                                "debit": dr_debit,
-                                                                "credit": dr_credit},
-                                                               {"account_no": cr_account.account_no,
-                                                                "entry_dt": entry_dt,
-                                                                "debit": cr_debit,
-                                                                "credit": cr_credit}])
+
+    insert_account_balance = insert(ERPAccountBalance).values([dr_values, cr_values])
+    update_account_balance = insert_account_balance.on_conflict_do_update(
+        index_elements=["account_no", "balance_date"],
+        set_=dict(dr_turnover=insert_account_balance.excluded.dr_turnover,
+                  cr_turnover=insert_account_balance.excluded.cr_turnover,
+                  dr_balance=insert_account_balance.excluded.dr_balance,
+                  cr_balance=insert_account_balance.excluded.cr_balance))
 
     entry_statement = insert(ERPAccountingEntry).values(**entry_values)
     async with Session() as session:
         await session.execute(entry_statement)
-        await session.execute(insert_account_balance)
+        await session.execute(update_account_balance)
         await session.commit()
     #     await session.execute(entry_section_statement)
