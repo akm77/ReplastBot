@@ -21,7 +21,6 @@ from tgbot.widgets.aiogram_datepicker import Datepicker
 from tgbot.widgets.aiogram_datepicker.callback_data import datepicker_callback
 from tgbot.widgets.num_keypad.NumericKeypad import NumericKeypad
 
-CALLBACK_CACHE_TIME = 1
 logger = logging.getLogger(__name__)
 
 
@@ -138,14 +137,12 @@ async def shift_start(message: Message, state: FSMContext):
 
 async def shift_exit(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     await state.reset_state(with_data=False)
     await call.message.edit_reply_markup(reply_markup=None)
 
 
 async def _process_shift_navigate(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
     async with state.proxy() as data:
         shift_date = datetime.date.fromisoformat(data["shift_date"])
@@ -183,7 +180,6 @@ async def _process_shift_navigate(call: CallbackQuery, callback_data: dict, stat
 
 async def shift_new(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
 
     datepicker = Datepicker(get_datepicker_settings())
     markup = datepicker.start_calendar()
@@ -192,7 +188,6 @@ async def shift_new(call: CallbackQuery, callback_data: dict, state: FSMContext)
 
 async def _process_datepicker(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     datepicker = Datepicker(get_datepicker_settings())
     Session = call.message.bot["Session"]
     _date = await datepicker.process(call, callback_data)
@@ -227,7 +222,6 @@ async def _process_datepicker(call: CallbackQuery, callback_data: dict, state: F
 
 async def _process_select_shift(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
     shift_number = -1
     if callback_data["action"] == ShiftMenuAction.SM_CANCEL:
@@ -253,7 +247,6 @@ async def _process_select_shift(call: CallbackQuery, callback_data: dict, state:
 
 async def _process_shift_staff(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
     async with state.proxy() as data:
         shift_date = datetime.date.fromisoformat(data["shift_date"])
@@ -321,7 +314,6 @@ async def _edit_hour(message: Message, regexp_command, state: FSMContext):
 
 async def _process_edit_hour(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     async with state.proxy() as data:
         shift_date = datetime.date.fromisoformat(data["shift_date"])
         shift_number = int(data["shift_number"])
@@ -357,7 +349,6 @@ async def _process_edit_hour(call: CallbackQuery, callback_data: dict, state: FS
 
 async def _process_shift_activity(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
     if callback_data["action"] == ShiftLookupAction.SL_LOOKUP_CANCEL:
         await state.reset_state(with_data=False)
@@ -402,7 +393,6 @@ async def _process_shift_activity(call: CallbackQuery, callback_data: dict, stat
 
 async def _prepare_shift_materials(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
 
     async with state.proxy() as data:
@@ -430,7 +420,6 @@ async def _prepare_shift_materials(call: CallbackQuery, callback_data: dict, sta
 
 async def _process_shift_materials(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
     async with state.proxy() as data:
         shift_date = datetime.date.fromisoformat(data["shift_date"])
@@ -506,7 +495,6 @@ async def _edit_material_weight(message: Message, regexp_command, state: FSMCont
 
 async def _process_material_weight(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     async with state.proxy() as data:
         shift_date = datetime.date.fromisoformat(data["shift_date"])
         shift_number = int(data["shift_number"])
@@ -532,7 +520,6 @@ async def _process_material_weight(call: CallbackQuery, callback_data: dict, sta
 
 async def _prepare_shift_products(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
 
     async with state.proxy() as data:
@@ -551,7 +538,6 @@ async def _prepare_shift_products(call: CallbackQuery, callback_data: dict, stat
 
 async def _process_shift_products(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
     async with state.proxy() as data:
         shift_date = datetime.date.fromisoformat(data["shift_date"])
@@ -614,7 +600,6 @@ async def _prepare_edit_product(message: Message, regexp_command, state: FSMCont
 async def _process_edit_product(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
     Session = call.message.bot["Session"]
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     async with state.proxy() as data:
         shift_date = datetime.date.fromisoformat(data["shift_date"])
         shift_number = data["shift_number"]
@@ -648,7 +633,6 @@ async def _process_edit_product(call: CallbackQuery, callback_data: dict, state:
 
 async def _process_enter_product_bag(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     async with state.proxy() as data:
         shift_date = datetime.date.fromisoformat(data["shift_date"])
         shift_number = data["shift_number"]
@@ -678,7 +662,6 @@ async def _process_enter_product_bag(call: CallbackQuery, callback_data: dict, s
 
 async def _process_enter_product_weight(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     async with state.proxy() as data:
         shift_date = datetime.date.fromisoformat(data["shift_date"])
         shift_number = data["shift_number"]
