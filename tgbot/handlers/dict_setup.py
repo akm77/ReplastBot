@@ -13,7 +13,6 @@ from tgbot.keyboards.dict_setup_inline import main_menu_kb, main_menu_data, Main
 from tgbot.models.erp_dict import dct_list, dct_create, dct_update, dct_read, dct_delete, DICT_LIST, DictType, \
     ERPMaterial, ERPContractor, ERPMaterialType, ERPCity, ERPEmployee, ERPProduct
 
-CALLBACK_CACHE_TIME = 1
 logger = logging.getLogger(__name__)
 
 
@@ -62,7 +61,6 @@ async def main_menu(message: Message, state: FSMContext):
 
 async def main_menu_exit(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     try:
         await call.message.delete()
         await state.finish()
@@ -72,7 +70,6 @@ async def main_menu_exit(call: CallbackQuery, callback_data: dict, state: FSMCon
 
 async def back_to_main_menu(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     try:
         async with state.proxy() as data:
             user_mention = data["user_mention"]
@@ -86,7 +83,6 @@ async def back_to_main_menu(call: CallbackQuery, callback_data: dict, state: FSM
 
 async def dict_list_view(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
     async with state.proxy() as data:
         data["dict_id"] = dict_id = callback_data.get("dict_id") or data["dict_id"]
@@ -111,7 +107,6 @@ async def dict_list_view(call: CallbackQuery, callback_data: dict, state: FSMCon
 
 async def dict_get_name(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     async with state.proxy() as data:
         data["line_id"] = callback_data["line_id"]
         dict_id = int(data["dict_id"])
@@ -200,7 +195,6 @@ async def select_lookup(call: CallbackQuery, callback_data: dict, state: FSMCont
 
 async def select_dict_record(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
     async with state.proxy() as data:
         dict_id = int(data["dict_id"])
@@ -218,7 +212,6 @@ async def select_dict_record(call: CallbackQuery, callback_data: dict, state: FS
 
 async def dict_change_state(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
     async with state.proxy() as data:
         dict_id = int(data["dict_id"])
@@ -236,7 +229,6 @@ async def dict_change_state(call: CallbackQuery, callback_data: dict, state: FSM
 
 async def change_impurity(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
     async with state.proxy() as data:
         dict_id = int(data["dict_id"])
@@ -259,7 +251,6 @@ async def change_impurity(call: CallbackQuery, callback_data: dict, state: FSMCo
 
 async def change_provider_state(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
     async with state.proxy() as data:
         dict_id = int(data["dict_id"])
@@ -277,7 +268,6 @@ async def change_provider_state(call: CallbackQuery, callback_data: dict, state:
 
 async def change_buyer_state(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
     async with state.proxy() as data:
         dict_id = int(data["dict_id"])
@@ -295,7 +285,6 @@ async def change_buyer_state(call: CallbackQuery, callback_data: dict, state: FS
 
 async def delete_dict_record(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
-    await call.answer(cache_time=CALLBACK_CACHE_TIME)
     Session = call.message.bot["Session"]
     pprint(callback_data)
     async with state.proxy() as data:
