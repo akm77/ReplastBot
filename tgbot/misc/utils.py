@@ -117,3 +117,8 @@ def format_decimal(value: Union[int, float, decimal.Decimal], delimiter="\'", pr
 def value_to_decimal(value, decimal_places: int = 8) -> decimal.Decimal:
     decimal.getcontext().rounding = decimal.ROUND_HALF_UP  # define rounding method
     return decimal.Decimal(str(float(value))).quantize(decimal.Decimal('1e-{}'.format(decimal_places)))
+
+
+def chunks_generators(lst, n):
+    for i in range(0, len(lst), n):
+        yield lst[i: i + n]

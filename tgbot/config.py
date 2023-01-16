@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+from typing import Any
 
 from environs import Env
+from google.oauth2.service_account import Credentials
 
 
 @dataclass
@@ -23,6 +25,8 @@ class TgBot:
 @dataclass
 class Miscellaneous:
     tzinfo: str
+    google_sheet_title: str
+    scoped_credentials: Any = None
     other_params: str = None
 
 
@@ -33,9 +37,23 @@ class Config:
     misc: Miscellaneous
 
 
+def get_scoped_credentials(credentials, scopes):
+    def prepare_credentials():
+        return credentials.with_scopes(scopes)
+
+    return prepare_credentials
+
+
 def load_config(path: str = None):
     env = Env()
     env.read_env(path)
+
+    scopes = [
+        "https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
+        "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"
+    ]
+    google_credentials = Credentials.from_service_account_file('tgbot/config-google.json')
+    scoped_credentials = get_scoped_credentials(google_credentials, scopes)
 
     return Config(
         tg_bot=TgBot(
@@ -52,6 +70,8 @@ def load_config(path: str = None):
             echo=env.bool('DB_ECHO')
         ),
         misc=Miscellaneous(
-            tzinfo=env.str('TZINFO')
+            tzinfo=env.str('TZINFO'),
+            google_sheet_title=env.str('GOOGLE_SHEET_TITLE'),
+            scoped_credentials=scoped_credentials
         )
     )
