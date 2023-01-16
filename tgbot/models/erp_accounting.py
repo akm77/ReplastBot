@@ -2,6 +2,7 @@ import datetime
 import logging
 from decimal import Decimal
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import Column, Integer, ForeignKey, String, text, CheckConstraint, Boolean, func, DateTime, \
     select, Date
@@ -189,7 +190,13 @@ def set_balance_values(balance_date: datetime.date,
     return row
 
 
-async def add_entry(Session: sessionmaker, operation_id: int, dr: str, cr: str, amount: Decimal, **kwargs):
+async def add_entry(Session: sessionmaker,
+                    operation_id: int,
+                    dr: str,
+                    cr: str,
+                    amount: Decimal,
+                    tz: str = "Asia/Vladivostok",
+                    **kwargs):
     """
     kwargs {"dr_section": {1: object_id, 2: object_id, 3: object_id},
             "cr_section": {1: object_id, 2: object_id, 3: object_id},
@@ -198,6 +205,7 @@ async def add_entry(Session: sessionmaker, operation_id: int, dr: str, cr: str, 
             "quantity": value,
             "measure_unit": value}
 
+    :param tz:
     :param operation_id:
     :param Session:
     :param dr:
@@ -206,7 +214,7 @@ async def add_entry(Session: sessionmaker, operation_id: int, dr: str, cr: str, 
     :param kwargs:
     :return:
     """
-    entry_dt = kwargs['entry_dt'] if kwargs.get('entry_dt') else datetime.datetime.now()
+    entry_dt = kwargs['entry_dt'] if kwargs.get('entry_dt') else datetime.datetime.now(tz=ZoneInfo(tz))
     await check_entry_dt(Session, entry_dt)
 
     dr_account = await get_account_from_account_no(Session, dr)

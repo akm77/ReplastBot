@@ -10,8 +10,8 @@ from tgbot.models.base import BaseModel, FinanceInteger, column_list
 from tgbot.models.erp_dict import ERPMaterial, ERPProduct
 
 
-class ERPMaterialIntake(BaseModel):
-    __tablename__ = "erp_material_intake"
+class ERPShiftMaterialIntake(BaseModel):
+    __tablename__ = "erp_shift_material_intake"
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -32,8 +32,8 @@ class ERPMaterialIntake(BaseModel):
     is_processed = Column(Boolean, nullable=False, server_default=expression.false())
 
 
-class ERPShiftReport(BaseModel):
-    __tablename__ = "erp_shift_report"
+class ERPShiftProduction(BaseModel):
+    __tablename__ = "erp_shift_production"
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -53,7 +53,7 @@ class ERPShiftReport(BaseModel):
     quantity = Column(FinanceInteger, nullable=False, server_default=text("0"))
 
 
-async def material_intake_create(Session: sessionmaker, **kwargs) -> Optional[List[ERPMaterialIntake]]:
+async def material_intake_create(Session: sessionmaker, **kwargs) -> Optional[List[ERPShiftMaterialIntake]]:
     """
     Create list of materials that did intake. kwargs must have the following attributes:
 
@@ -89,14 +89,14 @@ async def material_intake_create(Session: sessionmaker, **kwargs) -> Optional[Li
                "quantity": value_to_decimal(materials[material]["weight"], decimal_places=2)}
               for line_number, material in enumerate(materials, start=start_line)]
     async with Session() as session:
-        statement = insert(ERPMaterialIntake).values(values)
+        statement = insert(ERPShiftMaterialIntake).values(values)
         await session.execute(statement)
         await session.commit()
         result = await material_intake_read_shift(Session=Session, shift_date=shift_date, shift_number=shift_number)
         return result
 
 
-async def material_intake_read_line(Session: sessionmaker, **kwargs) -> Optional[ERPMaterialIntake]:
+async def material_intake_read_line(Session: sessionmaker, **kwargs) -> Optional[ERPShiftMaterialIntake]:
     """
     Read ERPMaterialIntake object form database. kwargs must have the following attributes:
 
@@ -123,18 +123,18 @@ async def material_intake_read_line(Session: sessionmaker, **kwargs) -> Optional
     shift_number = kwargs['shift_number']
     line_number = kwargs['line_number']
     material_id = kwargs['material_id']
-    statement = select(ERPMaterialIntake).where(ERPMaterialIntake.shift_date == shift_date,
-                                                ERPMaterialIntake.shift_number == shift_number,
-                                                ERPMaterialIntake.material_id == line_number,
-                                                ERPMaterialIntake.line_number == material_id). \
-        options(joinedload(ERPMaterialIntake.material))
+    statement = select(ERPShiftMaterialIntake).where(ERPShiftMaterialIntake.shift_date == shift_date,
+                                                     ERPShiftMaterialIntake.shift_number == shift_number,
+                                                     ERPShiftMaterialIntake.material_id == line_number,
+                                                     ERPShiftMaterialIntake.line_number == material_id). \
+        options(joinedload(ERPShiftMaterialIntake.material))
 
     async with Session() as session:
         result = await session.execute(statement)
         return result.scalar()
 
 
-async def material_intake_read_shift(Session: sessionmaker, **kwargs) -> Optional[List[ERPMaterialIntake]]:
+async def material_intake_read_shift(Session: sessionmaker, **kwargs) -> Optional[List[ERPShiftMaterialIntake]]:
     """
     Read ERPMaterialIntake object form database. kwargs must have the following attributes:
 
@@ -158,23 +158,23 @@ async def material_intake_read_shift(Session: sessionmaker, **kwargs) -> Optiona
 
     shift_date = kwargs['shift_date']
     shift_number = kwargs['shift_number']
-    statement = select(ERPMaterialIntake).where(ERPMaterialIntake.shift_date == shift_date,
-                                                ERPMaterialIntake.shift_number == shift_number)
+    statement = select(ERPShiftMaterialIntake).where(ERPShiftMaterialIntake.shift_date == shift_date,
+                                                     ERPShiftMaterialIntake.shift_number == shift_number)
     if kwargs.get('desc', None) is not None:
-        statement = statement.order_by(desc(ERPMaterialIntake.line_number))
+        statement = statement.order_by(desc(ERPShiftMaterialIntake.line_number))
     else:
-        statement = statement.order_by(ERPMaterialIntake.line_number)
+        statement = statement.order_by(ERPShiftMaterialIntake.line_number)
 
     if kwargs.get('limit', None) is not None:
         statement = statement.limit(kwargs['limit'])
 
-    statement = statement.options(joinedload(ERPMaterialIntake.material).joinedload(ERPMaterial.material_type))
+    statement = statement.options(joinedload(ERPShiftMaterialIntake.material).joinedload(ERPMaterial.material_type))
     async with Session() as session:
         result = await session.execute(statement)
         return result.scalars().all()
 
 
-async def material_intake_update_line(Session: sessionmaker, **kwargs) -> Optional[ERPMaterialIntake]:
+async def material_intake_update_line(Session: sessionmaker, **kwargs) -> Optional[ERPShiftMaterialIntake]:
     """
     Update CERPMaterialIntake in database. kwargs may have the following attributes:
 
@@ -205,12 +205,12 @@ async def material_intake_update_line(Session: sessionmaker, **kwargs) -> Option
     shift_number = kwargs['shift_number']
     line_number = kwargs['line_number']
     material_id = kwargs['material_id']
-    values = {k: v for k, v in kwargs.items() if k in column_list(ERPMaterialIntake)}
+    values = {k: v for k, v in kwargs.items() if k in column_list(ERPShiftMaterialIntake)}
 
-    statement = update(ERPMaterialIntake).where(ERPMaterialIntake.shift_date == shift_date,
-                                                ERPMaterialIntake.shift_number == shift_number,
-                                                ERPMaterialIntake.line_number == line_number,
-                                                ERPMaterialIntake.line_number == material_id).values(values)
+    statement = update(ERPShiftMaterialIntake).where(ERPShiftMaterialIntake.shift_date == shift_date,
+                                                     ERPShiftMaterialIntake.shift_number == shift_number,
+                                                     ERPShiftMaterialIntake.line_number == line_number,
+                                                     ERPShiftMaterialIntake.line_number == material_id).values(values)
     async with Session() as session:
         await session.execute(statement)
         await session.commit()
@@ -246,10 +246,10 @@ async def material_intake_delete_line(Session: sessionmaker, **kwargs) -> Option
     shift_number = kwargs['shift_number']
     line_number = kwargs['line_number']
     material_id = kwargs['material_id']
-    statement = delete(ERPMaterialIntake).where(ERPMaterialIntake.shift_date == shift_date,
-                                                ERPMaterialIntake.shift_number == shift_number,
-                                                ERPMaterialIntake.line_number == line_number,
-                                                ERPMaterialIntake.material_id == material_id)
+    statement = delete(ERPShiftMaterialIntake).where(ERPShiftMaterialIntake.shift_date == shift_date,
+                                                     ERPShiftMaterialIntake.shift_number == shift_number,
+                                                     ERPShiftMaterialIntake.line_number == line_number,
+                                                     ERPShiftMaterialIntake.material_id == material_id)
     async with Session() as session:
         result = await session.execute(statement)
         await session.commit()
@@ -274,15 +274,15 @@ async def material_intake_delete_shift(Session: sessionmaker, **kwargs) -> Optio
         return
     shift_date = kwargs['shift_date']
     shift_number = kwargs['shift_number']
-    statement = delete(ERPMaterialIntake).where(ERPMaterialIntake.shift_date == shift_date,
-                                                ERPMaterialIntake.shift_number == shift_number)
+    statement = delete(ERPShiftMaterialIntake).where(ERPShiftMaterialIntake.shift_date == shift_date,
+                                                     ERPShiftMaterialIntake.shift_number == shift_number)
     async with Session() as session:
         result = await session.execute(statement)
         await session.commit()
         return True if result.rowcount else False
 
 
-async def shift_report_create(Session: sessionmaker, **kwargs) -> Optional[List[ERPShiftReport]]:
+async def shift_report_create(Session: sessionmaker, **kwargs) -> Optional[List[ERPShiftProduction]]:
     """
     Create list of products that were made in given shift. kwargs must have the following attributes:
 
@@ -314,7 +314,7 @@ async def shift_report_create(Session: sessionmaker, **kwargs) -> Optional[List[
                "product_id": int(product),
                "quantity": value_to_decimal(products[product]["weight"], decimal_places=2)}
               for product in products]
-    statement = insert(ERPShiftReport).values(values)
+    statement = insert(ERPShiftProduction).values(values)
     async with Session() as session:
         await session.execute(statement)
         await session.commit()
@@ -322,7 +322,7 @@ async def shift_report_create(Session: sessionmaker, **kwargs) -> Optional[List[
         return result
 
 
-async def shift_report_read_shift(Session: sessionmaker, **kwargs) -> Optional[List[ERPShiftReport]]:
+async def shift_report_read_shift(Session: sessionmaker, **kwargs) -> Optional[List[ERPShiftProduction]]:
     """
     Read list of products that were made in given shift. kwargs must have the following attributes:
 
@@ -339,10 +339,10 @@ async def shift_report_read_shift(Session: sessionmaker, **kwargs) -> Optional[L
 
     shift_date = kwargs['shift_date']
     shift_number = kwargs['shift_number']
-    statement = select(ERPShiftReport).where(ERPShiftReport.shift_date == shift_date,
-                                             ERPShiftReport.shift_number == shift_number)
-    statement = statement.order_by(ERPShiftReport.id)
-    statement = statement.options(joinedload(ERPShiftReport.product).joinedload(ERPProduct.material_type))
+    statement = select(ERPShiftProduction).where(ERPShiftProduction.shift_date == shift_date,
+                                                 ERPShiftProduction.shift_number == shift_number)
+    statement = statement.order_by(ERPShiftProduction.id)
+    statement = statement.options(joinedload(ERPShiftProduction.product).joinedload(ERPProduct.material_type))
     async with Session() as session:
         result = await session.execute(statement)
         return result.scalars().all()
@@ -366,15 +366,15 @@ async def shift_report_delete_shift(Session: sessionmaker, **kwargs) -> Optional
 
     shift_date = kwargs['shift_date']
     shift_number = kwargs['shift_number']
-    statement = delete(ERPShiftReport).where(ERPShiftReport.shift_date == shift_date,
-                                             ERPShiftReport.shift_number == shift_number)
+    statement = delete(ERPShiftProduction).where(ERPShiftProduction.shift_date == shift_date,
+                                                 ERPShiftProduction.shift_number == shift_number)
     async with Session() as session:
         result = await session.execute(statement)
         await session.commit()
         return True if result.rowcount else False
 
 
-async def shift_report_read_bag(Session: sessionmaker, **kwargs) -> Optional[ERPShiftReport]:
+async def shift_report_read_bag(Session: sessionmaker, **kwargs) -> Optional[ERPShiftProduction]:
     """
     Read product that were made in given shift. kwargs must have the following attributes:
 
@@ -387,14 +387,14 @@ async def shift_report_read_bag(Session: sessionmaker, **kwargs) -> Optional[ERP
         return
 
     bag_number = kwargs['id']
-    statement = select(ERPShiftReport).where(ERPShiftReport.id == bag_number)
-    statement = statement.options(joinedload(ERPShiftReport.product).joinedload(ERPProduct.material_type))
+    statement = select(ERPShiftProduction).where(ERPShiftProduction.id == bag_number)
+    statement = statement.options(joinedload(ERPShiftProduction.product).joinedload(ERPProduct.material_type))
     async with Session() as session:
         result = await session.execute(statement)
         return result.scalar()
 
 
-async def shift_report_update_bag(Session: sessionmaker, **kwargs) -> Optional[ERPShiftReport]:
+async def shift_report_update_bag(Session: sessionmaker, **kwargs) -> Optional[ERPShiftProduction]:
     """
     Update bag product that were made in given shift. kwargs must have the following attributes:
 
@@ -415,9 +415,9 @@ async def shift_report_update_bag(Session: sessionmaker, **kwargs) -> Optional[E
     :return:    """
     if kwargs.get('id', None) is None:
         return
-    values = {k: v for k, v in kwargs.items() if k in column_list(ERPShiftReport)}
+    values = {k: v for k, v in kwargs.items() if k in column_list(ERPShiftProduction)}
     bag_number = kwargs['id']
-    statement = update(ERPShiftReport).where(ERPShiftReport.id == bag_number).values(values)
+    statement = update(ERPShiftProduction).where(ERPShiftProduction.id == bag_number).values(values)
     async with Session() as session:
         await session.execute(statement)
         await session.commit()
@@ -438,7 +438,7 @@ async def shift_report_delete_bag(Session: sessionmaker, **kwargs) -> Optional[b
         return
 
     bag_number = kwargs['id']
-    statement = delete(ERPShiftReport).where(ERPShiftReport.id == bag_number)
+    statement = delete(ERPShiftProduction).where(ERPShiftProduction.id == bag_number)
     async with Session() as session:
         result = await session.execute(statement)
         await session.commit()

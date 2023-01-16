@@ -1,3 +1,4 @@
+import base64
 import datetime
 import decimal
 from typing import Union, Tuple
@@ -76,8 +77,10 @@ def date_range(any_day: Union[datetime.datetime, datetime.date],
         return any_day.replace(month=1, day=1), any_day.replace(month=12, day=31)
 
 
-def date_iso_string(any_day: Union[datetime.datetime, datetime.date]) -> str:
-    return any_day.strftime('%Y%m%d')
+# Создайте функцию, которая кодирует файл и возвращает результат.
+def encode_file(file):
+    file_content = file.read()
+    return base64.b64encode(file_content).decode('utf-8')
 
 
 def convert_datetime_to_gsheet(dt: datetime.datetime, /) -> float:
@@ -102,20 +105,15 @@ def remove_extra_spaces(text: str) -> str:
     return "\n".join([t for t in clean_text.split('\n') if t])
 
 
-def format_float(value: Union[int, float, decimal.Decimal], pre=4) -> str:
-    return f"{value:<+,.{pre}f}".replace(",", " ")
+def format_float(value: Union[int, float, decimal.Decimal], delimiter="\'", pre=4) -> str:
+    return f"{value:,.{pre}f}".replace(",", delimiter)
 
 
-def format_decimal(value: Union[int, float, decimal.Decimal], pre=8):
-    s = f"{value:.{pre}f}"
-    return s.rstrip('0').rstrip('.') if '.' in s else s
+def format_decimal(value: Union[int, float, decimal.Decimal], delimiter="\'", pre=8):
+    s = f"{value:,.{pre}f}"
+    return s.replace(",", delimiter).rstrip('0').rstrip('.') if '.' in s else s
 
 
 def value_to_decimal(value, decimal_places: int = 8) -> decimal.Decimal:
     decimal.getcontext().rounding = decimal.ROUND_HALF_UP  # define rounding method
     return decimal.Decimal(str(float(value))).quantize(decimal.Decimal('1e-{}'.format(decimal_places)))
-
-
-def chunks_generators(lst, n):
-    for i in range(0, len(lst), n):
-        yield lst[i: i + n]

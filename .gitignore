@@ -62,5 +62,7 @@ venv.bak/
 .idea/*
 .env
 
+config-google.json
 db/
 selenium/
+

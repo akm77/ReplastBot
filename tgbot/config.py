@@ -22,6 +22,7 @@ class TgBot:
 
 @dataclass
 class Miscellaneous:
+    tzinfo: str
     other_params: str = None
 
 
@@ -50,5 +51,7 @@ def load_config(path: str = None):
             host=env.str('DB_HOST'),
             echo=env.bool('DB_ECHO')
         ),
-        misc=Miscellaneous()
+        misc=Miscellaneous(
+            tzinfo=env.str('TZINFO')
+        )
     )

@@ -14,8 +14,8 @@ from tgbot.keyboards.shift_processing_inline import shift_kb, shift_menu_data, S
     SelectEditData
 from tgbot.misc.datepicker_settings import get_datepicker_settings
 from tgbot.models.erp_dict import dct_list, ERPEmployee, ERPActivity, dct_read, ERPMaterial, ERPProduct
-from tgbot.models.erp_inventory import ERPMaterialIntake, material_intake_read_shift, material_intake_create, \
-    shift_report_read_shift, ERPShiftReport, shift_report_create
+from tgbot.models.erp_inventory import ERPShiftMaterialIntake, material_intake_read_shift, material_intake_create, \
+    shift_report_read_shift, ERPShiftProduction, shift_report_create
 from tgbot.models.erp_shift import shift_list_full, shift_create, shift_read, ERPShift, shift_navigator
 from tgbot.widgets.aiogram_datepicker import Datepicker
 from tgbot.widgets.aiogram_datepicker.callback_data import datepicker_callback
@@ -49,7 +49,7 @@ def get_selected_products(selected_products: dict) -> str:
          for item_id in selected_products])
 
 
-def get_shift_materials(materials: List[ERPMaterialIntake]) -> str:
+def get_shift_materials(materials: List[ERPShiftMaterialIntake]) -> str:
     return "\n".join([f"#{material.line_number} "
                       f"{material.material.name} ({material.material.material_type.name})"
                       f" - {material.quantity} кг"
@@ -57,7 +57,7 @@ def get_shift_materials(materials: List[ERPMaterialIntake]) -> str:
                       for material in materials])
 
 
-def get_shift_products(products: List[ERPShiftReport]) -> str:
+def get_shift_products(products: List[ERPShiftProduction]) -> str:
     state = {'ok': '✅', 'todo': '‼️', 'back': '📛'}
     return "\n".join([f"#{product.id} "
                       f"{product.product.name} ({product.product.material_type.name})"
