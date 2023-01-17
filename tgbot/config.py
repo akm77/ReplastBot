@@ -25,6 +25,7 @@ class TgBot:
 @dataclass
 class Miscellaneous:
     tzinfo: str
+    shift_duration: int
     google_sheet_title: str
     scoped_credentials: Any = None
     other_params: str = None
@@ -71,6 +72,7 @@ def load_config(path: str = None):
         ),
         misc=Miscellaneous(
             tzinfo=env.str('TZINFO'),
+            shift_duration=env.int('SHIFT_DURATION'),
             google_sheet_title=env.str('GOOGLE_SHEET_TITLE'),
             scoped_credentials=scoped_credentials
         )

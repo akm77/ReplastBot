@@ -1,11 +1,13 @@
-import datetime
 from typing import Optional, List
 
 from sqlalchemy import func, Column, Integer, String, Date, ForeignKey, text, insert, select, delete, desc, \
-    ForeignKeyConstraint, CheckConstraint, update, tuple_
+    ForeignKeyConstraint, CheckConstraint, update, tuple_, case, literal, union_all, and_
+from sqlalchemy.engine import Result
 from sqlalchemy.orm import relationship, backref, sessionmaker, joinedload
 
 from tgbot.models.base import TimedBaseModel, column_list, FinanceInteger
+from tgbot.models.erp_dict import ERPActivity, ERPMaterial, ERPProduct, ERPEmployee
+from tgbot.models.erp_inventory import ERPShiftMaterialIntake, ERPShiftProduction
 
 
 class ERPShift(TimedBaseModel):
@@ -160,3 +162,165 @@ async def shift_navigator(Session: sessionmaker, direction: str = 'prev', **kwar
         statement = statement.limit(kwargs['limit'])
     result = await session.execute(statement)
     return result.scalars().all()
+
+
+async def shift_activity_list(Session: sessionmaker) -> Optional[Result]:
+    # SELECT esa.shift_date, ea.name, COUNT() AS 'Кол-во'
+    # FROM erp_shift_activity esa
+    # JOIN erp_activity ea ON esa.activity_id = ea.id
+    # GROUP BY esa.shift_date, ea.name
+    statement = select(ERPShiftActivity.shift_date,
+                       ERPActivity.name,
+                       func.count().label("Кол-во"))
+    statement = statement.join(ERPShiftActivity.activity)
+    statement = statement.group_by(ERPShiftActivity.shift_date,
+                                   ERPActivity.name)
+    async with Session() as session:
+        result = await session.execute(statement)
+        return result
+
+
+async def shift_material_intake_list(Session: sessionmaker) -> Optional[Result]:
+    #     select esm.shift_date, em.name,
+    #        CASE esm.is_processed
+    #            WHEN 0 THEN 'Не принят'
+    #            WHEN 1 THEN 'Склад'
+    #        END AS state,
+    #        SUM(esm.quantity/100) as quantity
+    # FROM erp_shift_material_intake esm
+    # JOIN erp_material em ON esm.material_id = em.id
+    # group by esm.shift_date, em.name, esm.is_processed
+    statement = select(ERPShiftMaterialIntake.shift_date,
+                       case(
+                           (ERPShiftMaterialIntake.is_processed == 0, 'Не принят'),
+                           (ERPShiftMaterialIntake.is_processed == 1, 'Склад'),
+                       ).label('state'),
+                       func.sum(ERPShiftMaterialIntake.quantity)
+                       )
+    statement = statement.join(ERPShiftMaterialIntake.material)
+    statement = statement.group_by(ERPShiftMaterialIntake.shift_date,
+                                   ERPMaterial.name,
+                                   ERPShiftMaterialIntake.is_processed)
+    async with Session() as session:
+        result = await session.execute(statement)
+        return result
+
+
+async def shift_production_list(Session: sessionmaker) -> Optional[Result]:
+    # select esp.shift_date, ep.name,
+    # CASE esp.report_state
+    #     WHEN 'to_do' THEN 'Не принят'
+    #     WHEN 'ok' THEN 'Склад'
+    #     WHEN 'back' THEN 'Возврат'
+    # END AS report_state,
+    # COUNT(esp.id) as bag_num, SUM(esp.quantity/100) as quantity
+    # FROM erp_shift_production esp
+    # JOIN erp_product ep ON esp.product_id = ep.id
+    # group by esp.shift_date, ep.name, esp.report_state
+    statement = select(ERPShiftProduction.shift_date,
+                       case(
+                           (ERPShiftProduction.report_state == 'todo', 'Не принят'),
+                           (ERPShiftProduction.report_state == 'ok', 'Склад'),
+                           (ERPShiftProduction.report_state == 'back', 'Возврат'),
+                       ).label('state'),
+                       func.count(ERPShiftProduction.id).label('bag_num'),
+                       func.sum(ERPShiftProduction.quantity).label('quantity')
+                       )
+    statement = statement.join(ERPShiftProduction.product)
+    statement = statement.group_by(ERPShiftProduction.shift_date,
+                                   ERPProduct.name,
+                                   ERPShiftProduction.report_state)
+    async with Session() as session:
+        result = await session.execute(statement)
+        return result
+
+
+async def get_cte_shift_dates(Session: sessionmaker):
+    shift_min_max_dates = select(func.min(ERPShift.date).label('min_date'),
+                                 func.max(ERPShift.date).label('max_date'))
+
+    async with Session() as session:
+        result = await session.execute(shift_min_max_dates)
+    min_date, max_date = result.one_or_none()
+    if not (min_date and max_date):
+        return
+
+    cte_dates = select(literal(min_date, type_=Date()).label("date")).cte("dates")
+    cte_dates = cte_dates.union_all(select(func.date(cte_dates.c.date, '+1 day')).where(cte_dates.c.date <= max_date))
+    return cte_dates
+
+
+def get_cte_day_shifts():
+    return union_all(select(literal(1).label("shift_number")),
+                     select(literal(2).label("shift_number")),
+                     select(literal(3).label("shift_number"))).cte("shift")
+
+
+async def shift_bags_list(Session: sessionmaker) -> Optional[Result]:
+    # WITH dates(date) AS (VALUES('2022-12-01')
+    #                      UNION ALL
+    #                      SELECT date(date, '+1 day')
+    #                      FROM dates
+    #                      WHERE date < '2032-12-31'),
+    # shift(shift_number) AS (VALUES (1), (2), (3)),
+    # date_range AS (SELECT date, shift_number
+    #                FROM dates
+    #                CROSS JOIN shift)
+    # select dr.date, dr.shift_number, count(esp.id) as bag_num
+    # FROM date_range dr
+    # LEFT JOIN erp_shift_production esp ON dr.date = esp.shift_date AND dr.shift_number = esp.shift_number
+    # group by dr.date, dr.shift_number
+    # order by dr.date, dr.shift_number
+    cte_dates = await get_cte_shift_dates(Session)
+    cte_shift = get_cte_day_shifts()
+    cte_date_range = select(cte_dates.c.date, cte_shift.c.shift_number).cte("date_range")
+    statement = select(cte_date_range.c.date,
+                       cte_date_range.c.shift_number,
+                       func.count(ERPShiftProduction.id).label("bag_num")
+                       ).join(ERPShiftProduction,
+                              and_(cte_date_range.c.date == ERPShiftProduction.shift_date,
+                                   cte_date_range.c.shift_number == ERPShiftProduction.shift_number),
+                              isouter=True).group_by(cte_date_range.c.date,
+                                                     cte_date_range.c.shift_number)
+    async with Session() as session:
+        result = await session.execute(statement)
+    return result
+
+
+async def staff_time_sheet(Session: sessionmaker) -> Optional[Result]:
+    #     WITH dates(date) AS (VALUES('2022-12-01')
+    #                      UNION ALL
+    #                      SELECT date(date, '+1 day')
+    #                      FROM dates
+    #                      WHERE date < '2032-12-31'),
+    # shift(shift_number) AS (VALUES (1), (2), (3)),
+    # date_range AS (SELECT date, shift_number
+    #                FROM dates
+    #                CROSS JOIN shift)
+    # SELECT IFNULL(e.name, "я") AS name, date_range.date, date_range.shift_number, shift.duration, staff.hours_worked / 100 AS hours_worked
+    # FROM date_range
+    # LEFT JOIN erp_shift shift ON date_range.date = "shift"."date" AND date_range.shift_number = "shift"."number"
+    # LEFT JOIN erp_shift_staff staff ON "shift"."date" = staff.shift_date AND "shift"."number" = staff.shift_number
+    # LEFT join erp_employee e ON staff.employee_id = e.id
+    # order by date_range.date, date_range.shift_number, e.name;
+    cte_dates = await get_cte_shift_dates(Session)
+    cte_shift = get_cte_day_shifts()
+    cte_date_range = select(cte_dates.c.date, cte_shift.c.shift_number).cte("date_range")
+    statement = select(func.ifnull(ERPEmployee.name, "я").label("name"),
+                       cte_date_range.c.date,
+                       cte_date_range.c.shift_number,
+                       ERPShift.duration,
+                       ERPShiftStaff.hours_worked)
+    statement = statement.join(ERPShift, and_(cte_date_range.c.date == ERPShift.date,
+                                              cte_date_range.c.shift_number == ERPShift.number),
+                               isouter=True)
+    statement = statement.join(ERPShiftStaff, and_(cte_date_range.c.date == ERPShiftStaff.shift_date,
+                                                   cte_date_range.c.shift_number == ERPShiftStaff.shift_number),
+                               isouter=True)
+    statement = statement.join(ERPEmployee, ERPShiftStaff.employee_id == ERPEmployee.id, isouter=True)
+    statement = statement.order_by(cte_date_range.c.date,
+                                   cte_date_range.c.shift_number,
+                                   literal(1))
+    async with Session() as session:
+        result = await session.execute(statement)
+    return result

@@ -8,6 +8,7 @@ from aiogram.types import Message, ChatActions, CallbackQuery
 from aiogram.utils.markdown import text
 from sqlalchemy.orm import sessionmaker
 
+from tgbot.config import Config
 from tgbot.keyboards.shift_processing_inline import shift_kb, shift_menu_data, ShiftMenuAction, select_shift_kb, \
     multi_select_list_kb, ShiftMultiselect, shift_lookup_data, ShiftLookupAction, change_numeric_value_kb, \
     change_numeric_value, ChangeNumericValue, ShiftNavigator, ShiftEnterValue, select_edit_data_kb, select_edit_data, \
@@ -248,6 +249,8 @@ async def _process_select_shift(call: CallbackQuery, callback_data: dict, state:
 async def _process_shift_staff(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
     Session = call.message.bot["Session"]
+    config: Config = call.message.bot['config']
+    shift_duration = config.misc.shift_duration
     async with state.proxy() as data:
         shift_date = datetime.date.fromisoformat(data["shift_date"])
         shift_number = int(data["shift_number"])
@@ -266,7 +269,7 @@ async def _process_shift_staff(call: CallbackQuery, callback_data: dict, state: 
                 selected_staff.pop(callback_data["item_id"])
             else:
                 employee = await dct_read(Session, ERPEmployee, id=int(callback_data["item_id"]))
-                selected_staff[callback_data["item_id"]] = {"name": employee.name, "hour": 8}
+                selected_staff[callback_data["item_id"]] = {"name": employee.name, "hour": shift_duration}
         async with state.proxy() as data:
             data["selected_staff"] = selected_staff
         staff_list = await dct_list(Session=Session, table_class=ERPEmployee, is_active=True)
@@ -314,6 +317,8 @@ async def _edit_hour(message: Message, regexp_command, state: FSMContext):
 
 async def _process_edit_hour(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
+    config: Config = call.message.bot['config']
+    shift_duration = config.misc.shift_duration
     async with state.proxy() as data:
         shift_date = datetime.date.fromisoformat(data["shift_date"])
         shift_number = int(data["shift_number"])
@@ -325,9 +330,9 @@ async def _process_edit_hour(call: CallbackQuery, callback_data: dict, state: FS
     wh = int(employee["hour"])
     markup = change_numeric_value_kb()
     if callback_data["action"] == ChangeNumericValue.CNV_INC:
-        wh = 4 if wh == 8 else (wh + 4)
+        wh = shift_duration // 2 if wh == shift_duration else (wh + 1)
     elif callback_data["action"] == ChangeNumericValue.CNV_DEC:
-        wh = 8 if wh == 4 else (wh - 4)
+        wh = shift_duration if wh == shift_duration // 2 else (wh - 1)
     elif callback_data["action"] == ChangeNumericValue.CNV_CONFIRM:
         staff_list[str(employee_id)]["hour"] = wh
         async with state.proxy() as data:
@@ -349,6 +354,8 @@ async def _process_edit_hour(call: CallbackQuery, callback_data: dict, state: FS
 
 async def _process_shift_activity(call: CallbackQuery, callback_data: dict, state: FSMContext):
     await ChatActions.typing()
+    config: Config = call.message.bot['config']
+    shift_duration = config.misc.shift_duration
     Session = call.message.bot["Session"]
     if callback_data["action"] == ShiftLookupAction.SL_LOOKUP_CANCEL:
         await state.reset_state(with_data=False)
@@ -380,7 +387,7 @@ async def _process_shift_activity(call: CallbackQuery, callback_data: dict, stat
             selected_activity: list = list(map(int, data["selected_activity"]))
             staff_list = data["selected_staff"]
         await state.reset_state(with_data=False)
-        shift = await shift_create(Session=Session, date=shift_date, number=shift_number,
+        shift = await shift_create(Session=Session, date=shift_date, number=shift_number, duration=shift_duration,
                                    staff_list=staff_list, activity_list=selected_activity)
         async with state.proxy() as data:
             data["selected_activity"] = []

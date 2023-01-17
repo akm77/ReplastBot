@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Worksheets:
-    TITLES = ['Пр-во', 'БД пр-во']
+    TITLES = ["Пр-во", "БД пр-во"]
 
 
 async def create_spreadsheet(client: AsyncioGspreadClient, spreadsheet_name: str):
@@ -95,15 +95,9 @@ def format_header(worksheet: Worksheet):
 
 async def export_entity(Session: sessionmaker, google_client_manager: AsyncioGspreadClientManager,
                         entity: int, spreadsheet_url: StrOrURL, **kwargs):
-    time_delta = kwargs.get('time_delta', 0)
     google_client = await google_client_manager.authorize()
     spreadsheet = await google_client.open_by_url(spreadsheet_url)
-    worksheet_today = await spreadsheet.worksheet('Today')
-    worksheet_groups = await spreadsheet.worksheet('Groups')
-    worksheet_transactions = await spreadsheet.worksheet('Transactions')
-    worksheet_ep_request = await spreadsheet.worksheet('EP-Request')
-
-    op_date_time = datetime.datetime.now() - datetime.timedelta(days=time_delta)
+    worksheet_db = await spreadsheet.worksheet("БД пр-во")
 
     # entity_totals = await sea_entity_total_group_by_chat_read(op_date_time.date(), Session=Session, entity=entity)
     data = ()
