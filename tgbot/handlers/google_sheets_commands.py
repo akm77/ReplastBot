@@ -10,7 +10,7 @@ from gspread_asyncio import AsyncioGspreadClientManager
 
 from tgbot.config import Config
 from tgbot.models.erp_shift import shift_activity_list, shift_material_intake_list, shift_bags_list, staff_time_sheet
-from tgbot.services.google_sheets import create_spreadsheet, Worksheets, share_spreadsheet
+from tgbot.services.google_sheets import create_spreadsheet, Worksheets, share_spreadsheet, export_production
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +81,9 @@ async def share_sheet(message: Message):
 async def export_to_sheet(message: Message):
     await ChatActions.typing()
     Session = message.bot["Session"]
-    # await shift_activity_list(Session)
-    # await shift_material_intake_list(Session)
-    await staff_time_sheet(Session)
+    google_client_manager: AsyncioGspreadClientManager = message.bot["google_client_manager"]
+    url = get_sheet_url()
+    await export_production(Session, google_client_manager, url)
 
 
 def register_sheet_commands(dp: Dispatcher):

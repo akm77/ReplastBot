@@ -93,8 +93,8 @@ def format_header(worksheet: Worksheet):
     )
 
 
-async def export_entity(Session: sessionmaker, google_client_manager: AsyncioGspreadClientManager,
-                        entity: int, spreadsheet_url: StrOrURL, **kwargs):
+async def export_production(Session: sessionmaker, google_client_manager: AsyncioGspreadClientManager,
+                            spreadsheet_url: StrOrURL, **kwargs):
     google_client = await google_client_manager.authorize()
     spreadsheet = await google_client.open_by_url(spreadsheet_url)
     worksheet_db = await spreadsheet.worksheet("БД пр-во")
