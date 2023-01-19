@@ -1,6 +1,7 @@
 import datetime
 import logging
 from typing import List
+from zoneinfo import ZoneInfo
 
 from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext, filters
@@ -108,7 +109,8 @@ async def shift_start(message: Message, state: FSMContext):
     await ChatActions.typing()
     Session = message.bot["Session"]
     shift_list = await shift_list_full(Session=Session, limit=1)
-    last_shift_date = shift_list[0].date
+    last_shift_date = shift_list[0].date if len(shift_list) else \
+        datetime.datetime.now(tz=ZoneInfo('Asia/Vladivostok')).date()
     last_shift_number = shift_list[0].number
     if not len(shift_list):
         await message.answer("Необходимо создать смену", reply_markup=shift_kb(navigate=False))
