@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, List
 
 from sqlalchemy import func, Column, Integer, String, Date, ForeignKey, text, insert, select, delete, desc, \
@@ -240,12 +241,13 @@ async def shift_production_list(Session: sessionmaker) -> Optional[Result]:
 async def get_cte_shift_dates(Session: sessionmaker):
     shift_min_max_dates = select(func.min(ERPShift.date).label('min_date'),
                                  func.max(ERPShift.date).label('max_date'))
-
     async with Session() as session:
         result = await session.execute(shift_min_max_dates)
     min_date, max_date = result.one_or_none()
     if not (min_date and max_date):
         return
+    else:
+        min_date = min_date.replace(day=1)
 
     cte_dates = select(literal(min_date, type_=Date()).label("date")).cte("dates")
     cte_dates = cte_dates.union_all(select(func.date(cte_dates.c.date, '+1 day')).where(cte_dates.c.date <= max_date))
