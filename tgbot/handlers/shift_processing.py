@@ -579,11 +579,17 @@ async def _process_shift_products(call: CallbackQuery, callback_data: dict, stat
         await call.message.edit_text(message_text, reply_markup=markup)
     elif callback_data["action"] == ShiftLookupAction.SL_LOOKUP_CONFIRM:
         await state.reset_state(with_data=False)
-        await shift_report_create(Session,
-                                  shift_date=shift_date,
-                                  shift_number=shift_number,
-                                  products=selected_products)
+        error_text = None
+        try:
+            await shift_report_create(Session,
+                                      shift_date=shift_date,
+                                      shift_number=shift_number,
+                                      products=selected_products)
+        except Exception as e:
+            logger.error("Error processing product list. %r", e)
+            error_text = e.__repr__() + "\n" + "-"*30 + "\n"
         message_text = await get_shift_full_text(Session, shift_date, shift_number)
+        message_text = error_text + message_text if error_text else message_text
         markup = shift_kb(navigate=True)
         await call.message.edit_text(message_text, reply_markup=markup)
 
