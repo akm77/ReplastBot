@@ -171,7 +171,7 @@ async def shift_activity_list(Session: sessionmaker) -> Optional[Result]:
     # GROUP BY esa.shift_date, ea.name
     statement = select(ERPShiftActivity.shift_date,
                        ERPActivity.name,
-                       func.count().label("Кол-во"))
+                       func.count().label("quantity"))
     statement = statement.join(ERPShiftActivity.activity)
     statement = statement.group_by(ERPShiftActivity.shift_date,
                                    ERPActivity.name)
@@ -191,11 +191,12 @@ async def shift_material_intake_list(Session: sessionmaker) -> Optional[Result]:
     # JOIN erp_material em ON esm.material_id = em.id
     # group by esm.shift_date, em.name, esm.is_processed
     statement = select(ERPShiftMaterialIntake.shift_date,
+                       ERPMaterial.name,
                        case(
                            (ERPShiftMaterialIntake.is_processed == 0, 'Не принят'),
                            (ERPShiftMaterialIntake.is_processed == 1, 'Склад'),
                        ).label('state'),
-                       func.sum(ERPShiftMaterialIntake.quantity)
+                       func.sum(ERPShiftMaterialIntake.quantity).label("quantity")
                        )
     statement = statement.join(ERPShiftMaterialIntake.material)
     statement = statement.group_by(ERPShiftMaterialIntake.shift_date,
@@ -218,6 +219,7 @@ async def shift_production_list(Session: sessionmaker) -> Optional[Result]:
     # JOIN erp_product ep ON esp.product_id = ep.id
     # group by esp.shift_date, ep.name, esp.report_state
     statement = select(ERPShiftProduction.shift_date,
+                       ERPProduct.name,
                        case(
                            (ERPShiftProduction.report_state == 'todo', 'Не принят'),
                            (ERPShiftProduction.report_state == 'ok', 'Склад'),
@@ -274,7 +276,7 @@ async def shift_bags_list(Session: sessionmaker) -> Optional[Result]:
     cte_dates = await get_cte_shift_dates(Session)
     cte_shift = get_cte_day_shifts()
     cte_date_range = select(cte_dates.c.date, cte_shift.c.shift_number).cte("date_range")
-    statement = select(cte_date_range.c.date,
+    statement = select(cte_date_range.c.date.label("shift_date"),
                        cte_date_range.c.shift_number,
                        func.count(ERPShiftProduction.id).label("bag_num")
                        ).join(ERPShiftProduction,
@@ -307,7 +309,7 @@ async def staff_time_sheet(Session: sessionmaker) -> Optional[Result]:
     cte_shift = get_cte_day_shifts()
     cte_date_range = select(cte_dates.c.date, cte_shift.c.shift_number).cte("date_range")
     statement = select(func.ifnull(ERPEmployee.name, "я").label("name"),
-                       cte_date_range.c.date,
+                       cte_date_range.c.date.label("shift_date"),
                        cte_date_range.c.shift_number,
                        ERPShift.duration,
                        ERPShiftStaff.hours_worked)

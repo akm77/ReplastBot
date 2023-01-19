@@ -21,12 +21,6 @@ class ERPOperation(BaseModel):
     name = Column(String(50), nullable=False, unique=True)
 
 
-class ERPMeasureUnit(BaseModel):
-    __tablename__ = "erp_measure_unit"
-    name = Column(String(10), primary_key=True)
-    full_name = Column(String(50))
-
-
 class ERPSection(BaseModel):
     __tablename__ = "erp_section"
     id = Column(Integer, primary_key=True)  # id  счета

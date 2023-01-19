@@ -1,4 +1,4 @@
-import datetime
+import asyncio
 import logging
 from dataclasses import dataclass
 from typing import Tuple, List
@@ -10,7 +10,9 @@ from gspread_asyncio import AsyncioGspreadClient, AsyncioGspreadSpreadsheet, Asy
 from gspread_formatting import CellFormat, Borders, Border, TextFormat, format_cell_range
 from sqlalchemy.orm import sessionmaker
 
-from tgbot.misc.utils import value_to_decimal, convert_datetime_to_gsheet
+from tgbot.misc.utils import convert_date_to_gsheet
+from tgbot.models.erp_shift import shift_activity_list, shift_material_intake_list, shift_production_list, \
+    shift_bags_list, staff_time_sheet
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +81,8 @@ async def fill_in_data(worksheet: AsyncioGspreadWorksheet, data: Tuple[Tuple],
 def format_header(worksheet: Worksheet):
     worksheet.freeze(1, 0)
     format_cell_range(
-        worksheet, name='1:1',
+        worksheet,
+        name='1:1',
         cell_format=CellFormat(
             borders=Borders(
                 top=Border(style='SOLID_THICK'),
@@ -98,78 +101,75 @@ async def export_production(Session: sessionmaker, google_client_manager: Asynci
     google_client = await google_client_manager.authorize()
     spreadsheet = await google_client.open_by_url(spreadsheet_url)
     worksheet_db = await spreadsheet.worksheet("БД пр-во")
+    # convert_date_to_gsheet(date: datetime.date, / )
+    production_db = await asyncio.gather(shift_activity_list(Session),
+                                         shift_material_intake_list(Session),
+                                         shift_production_list(Session),
+                                         shift_bags_list(Session),
+                                         staff_time_sheet(Session))
 
-    # entity_totals = await sea_entity_total_group_by_chat_read(op_date_time.date(), Session=Session, entity=entity)
-    data = ()
-    # for line in entity_totals:
-    #     data += (line.account_title, line.asset_code,
-    #              float(-1 * value_to_decimal(line.total_balance / 10 ** line.precision, line.precision)),
-    #              float(-1 * value_to_decimal(line.total_debit / 10 ** line.precision, line.precision)),
-    #              float(-1 * value_to_decimal(line.total_credit / 10 ** line.precision, line.precision))),
-    if len(data):
-        headers = ['Account', 'Currency', 'Total balance', 'Total debit', 'Total credit',
-                   f"{op_date_time.isoformat(sep=' ', timespec='minutes')}"]
-        await fill_in_data(worksheet_today, data, headers=headers)
+    activity_list_header_range = "A1:C1"
+    activity_list_header_values = [["shift_date", "name", "quantity"]]
+    activity_list_range = "A2:C"
+    activity_list = [[convert_date_to_gsheet(row.shift_date), row.name, float(row.quantity)]
+                     for row in production_db[0]]
 
-    # entity_accounts = await sea_entity_account_read(Session=Session, entity=entity)
-    # data = ()
-    # for line in entity_accounts:
-    #     data += (line.account.title, line.account_id),
+    material_intake_list_header_range = "E1:H1"
+    material_intake_list_header_values = [["shift_date", "name", "state", "quantity"]]
+    material_intake_list_range = "E2:H"
+    material_intake_list = [[convert_date_to_gsheet(row.shift_date), row.name, row.state, float(row.quantity)]
+                            for row in production_db[1]]
 
-    if len(data):
-        headers = ['Group', 'Group ID', ]
-        await fill_in_data(worksheet_groups, data, headers=headers)
+    production_list_header_range = "J1:N1"
+    production_list_header_values = [["shift_date", "name", "state", "bag_num", "quantity"]]
+    production_list_range = "J2:N"
+    production_list = [[convert_date_to_gsheet(row.shift_date), row.name, row.state, row.bag_num, float(row.quantity)]
+                       for row in production_db[2]]
 
-    # entity_transactions = await sea_entity_transactions_read(
-    #     Session=Session,
-    #     entity=entity,
-    #     first_date=op_date_time.date() - datetime.timedelta(days=1),
-    #     last_date=op_date_time.date() + datetime.timedelta(days=1))
-    # data = ()
-    # for line in entity_transactions:
-    #     sign = 1 if line.direction == 'dr' else -1
-    #     data += (line.date_time.isoformat(sep=' ', timespec='seconds'),
-    #              line.account_title,
-    #              line.mention,
-    #              line.asset_code,
-    #              float(sign * value_to_decimal(line.amount / 10 ** line.precision, line.precision)),
-    #              line.amount_source),
+    bags_list_header_range = "P1:R1"
+    bags_list_header_values = [["shift_date", "shift_number", "bag_num"]]
+    bags_list_range = "P2:R"
+    bags_list = [[convert_date_to_gsheet(row.shift_date), row.shift_number, row.bag_num] for row in production_db[3]]
 
-    if len(data):
-        headers = ['Date', 'Group', 'User', 'Currency', 'Amount', 'Amount source']
-        await fill_in_data(worksheet_transactions, data, headers=headers)
+    time_sheet_header_range = "T1:X1"
+    time_sheet_header_values = [["name", "shift_date", "shift_number", "duration", "hours_worked"]]
+    time_sheet_range = "T2:X"
+    time_sheet = [[row.name, convert_date_to_gsheet(row.shift_date), row.shift_number,
+                   float(row.duration) if row.duration else None,
+                   float(row.hours_worked) if row.hours_worked else None]
+                  for row in production_db[4]]
 
-    # entity_ep_requests = await ep_entity_requests(Session, entity_id=entity, is_active=True)
-    # data = ()
-    # EPRequest.id,
-    # account_alias.title.label('account_title'),
-    # EPProvider.name.label('provider_name'),
-    # EPRequest.email,
-    # EPRequest.detail,
-    # EPRequest.amount,
-    # func.ifnull(cte_payment.c.payed_amount, 0).label('payed_amount'),
-    # EPRequest.asset_code,
-    # EPRequest.comment,
-    # EPRequest.created_at,
-    # EPRequest.updated_at
-    # for line in entity_ep_requests:
-    #     data += (line.id,
-    #              line.account_title,
-    #              line.provider_name,
-    #              line.email,
-    #              line.detail,
-    #              float(line.amount),
-    #              float(line.payed_amount),
-    #              line.asset_code.upper(),
-    #              line.comment,
-    #              convert_datetime_to_gsheet(line.created_at),
-    #              convert_datetime_to_gsheet(line.updated_at),
-    #              f"/eprdel_{line.id}",
-    #              f"/eprupd_{line.id}",
-    #              f"/eprcmt_{line.id}",
-    #              f"/eppadd_{line.id}"),
-    #
-    # if len(data):
-    #     headers = ['ID', 'Chat', 'Provider', 'E-mail', 'Detail', 'Amount', 'Payed', 'Currency',
-    #                'Comment', 'Created', 'Updated', 'Delete', 'Upd Amount', 'Set comment', 'Add payment']
-    #     await fill_in_data(worksheet_ep_request, data, headers=headers)
+    await worksheet_db.clear()
+    await worksheet_db.batch_update([{
+        'range': activity_list_header_range,
+        'values': activity_list_header_values,
+    }, {
+        'range': material_intake_list_header_range,
+        'values': material_intake_list_header_values,
+    }, {
+        'range': production_list_header_range,
+        'values': production_list_header_values,
+    }, {
+        'range': bags_list_header_range,
+        'values': bags_list_header_values,
+    }, {
+        'range': time_sheet_header_range,
+        'values': time_sheet_header_values,
+    }])
+
+    await worksheet_db.batch_update([{
+        'range': activity_list_range,
+        'values': activity_list,
+    }, {
+        'range': material_intake_list_range,
+        'values': material_intake_list,
+    }, {
+        'range': production_list_range,
+        'values': production_list,
+    }, {
+        'range': bags_list_range,
+        'values': bags_list,
+    }, {
+        'range': time_sheet_range,
+        'values': time_sheet,
+    }])

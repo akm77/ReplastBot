@@ -51,11 +51,26 @@ class ERPMaterialType(ERPSimpleDict):
                 "name_name": "Название"}
 
 
+class ERPUnitOfMeasurement(ERPSimpleDict):
+    __tablename__ = "erp_uom"
+
+    code = Column(String(length=5), nullable=False, index=True, unique=True)
+
+    @declared_attr
+    def hr_names(self):
+        return {"type": DictType.COMPLEX,
+                "table_name": "Единицы измерения",
+                "name_name": "Название",
+                "code_name": "Код"}
+
+
 class ERPProduct(ERPSimpleDict):
     __tablename__ = "erp_product"
 
     material_type_id = Column(Integer,
                               ForeignKey('erp_material_type.id', ondelete="RESTRICT", onupdate="CASCADE"))
+    uom_code = Column(String(length=5),
+                      ForeignKey('erp_uom.code', ondelete="RESTRICT", onupdate="CASCADE"), server_default=text("кг"))
     material_type = relationship("ERPMaterialType", backref=backref("erp_product", uselist=False))
 
     @declared_attr
@@ -89,6 +104,8 @@ class ERPMaterial(ERPSimpleDict):
     material_type_id = Column(Integer,
                               ForeignKey('erp_material_type.id', ondelete="RESTRICT", onupdate="CASCADE"))
     material_type = relationship("ERPMaterialType", backref=backref("erp_material", uselist=False))
+    uom_code = Column(String(length=5),
+                      ForeignKey('erp_uom.code', ondelete="RESTRICT", onupdate="CASCADE"), server_default=text("кг"))
     impurity = Column(FinanceInteger, nullable=False, server_default=text("1000"))
 
 
