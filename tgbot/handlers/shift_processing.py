@@ -387,8 +387,13 @@ async def _process_shift_activity(call: CallbackQuery, callback_data: dict, stat
             selected_activity: list = list(map(int, data["selected_activity"]))
             staff_list = data["selected_staff"]
         await state.reset_state(with_data=False)
-        shift = await shift_create(Session=Session, date=shift_date, number=shift_number, duration=shift_duration,
-                                   staff_list=staff_list, activity_list=selected_activity)
+        try:
+            shift = await shift_create(Session=Session, date=shift_date, number=shift_number, duration=shift_duration,
+                                       staff_list=staff_list, activity_list=selected_activity)
+        except Exception as e:
+            logger.error("Error creating shift %r", e)
+            shift = await shift_read(Session, date=shift_date, number=shift_number)
+
         async with state.proxy() as data:
             data["selected_activity"] = []
             data["selected_staff"] = []
@@ -587,7 +592,7 @@ async def _process_shift_products(call: CallbackQuery, callback_data: dict, stat
                                       products=selected_products)
         except Exception as e:
             logger.error("Error processing product list. %r", e)
-            error_text = e.__repr__() + "\n" + "-"*30 + "\n"
+            error_text = e.__repr__() + "\n" + "-" * 30 + "\n"
         message_text = await get_shift_full_text(Session, shift_date, shift_number)
         message_text = error_text + message_text if error_text else message_text
         markup = shift_kb(navigate=True)
