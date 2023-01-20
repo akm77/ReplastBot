@@ -5,7 +5,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.callback_data import CallbackData
 
 from tgbot.misc.utils import chunks_generators
-from tgbot.models.erp_dict import DICT_LIST, DictType
+from tgbot.models.erp_dict import DICT_LIST
 
 
 class DctEdit(StatesGroup):

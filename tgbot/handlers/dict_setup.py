@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from tgbot.keyboards.dict_setup_inline import main_menu_kb, main_menu_data, MainMenuAction, dict_list_kb, \
     SimpleDictMenuAction, dict_menu_data, DctEdit, dict_edit_kb, confirm_kb, lookup_kb
 from tgbot.models.erp_dict import dct_list, dct_create, dct_update, dct_read, dct_delete, DICT_LIST, DictType, \
-    ERPMaterial, ERPContractor, ERPMaterialType, ERPCity, ERPEmployee, ERPProduct
+    ERPMaterial, ERPContractor, ERPMaterialType, ERPCity, ERPEmployee, ERPProduct, ERPProductType
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +27,8 @@ async def get_dict_text(Session: sessionmaker,
         custom_text = text(f"Тип: {dict_obj.material_type.name}\n"
                            f"Примеси: {dict_obj.impurity}%\n")
     elif dict_class.__name__ == "ERPProduct":
-        dict_obj = await dct_read(Session, dict_class, id=line_id, joined_load=ERPProduct.material_type)
-        custom_text = f"Тип: {dict_obj.material_type.name}\n"
+        dict_obj = await dct_read(Session, dict_class, id=line_id, joined_load=ERPProduct.product_type)
+        custom_text = f"Тип: {dict_obj.product_type.name}\n"
     elif dict_class.__name__ == "ERPContractor":
         dict_obj = await dct_read(Session, dict_class, id=line_id, joined_load=ERPContractor.city)
         # city = relationship("ERPCity", backref=backref("erp_contractor", uselist=False))
@@ -90,7 +90,7 @@ async def dict_list_view(call: CallbackQuery, callback_data: dict, state: FSMCon
     if dict_class.__name__ == "ERPMaterial":
         dict_list = await dct_list(Session, dict_class, joined_load=ERPMaterial.material_type)
     elif dict_class.__name__ == "ERPProduct":
-        dict_list = await dct_list(Session, dict_class, joined_load=ERPProduct.material_type)
+        dict_list = await dct_list(Session, dict_class, joined_load=ERPProduct.product_type)
     elif dict_class.__name__ == "ERPContractor":
         dict_list = await dct_list(Session, dict_class, joined_load=ERPContractor.city)
     else:
@@ -145,8 +145,10 @@ async def dict_enter_name(message: Message, state: FSMContext):
             await state.reset_state(with_data=False)
         elif dict_class.hr_names["type"] == DictType.COMPLEX:
             lookup_table = ERPMaterialType
-            if dict_class.__name__ == "ERPMaterial" or dict_class.__name__ == "ERPProduct":
+            if dict_class.__name__ == "ERPMaterial":
                 lookup_table = ERPMaterialType
+            elif dict_class.__name__ == "ERPProduct":
+                lookup_table = ERPProductType
             elif dict_class.__name__ == "ERPContractor":
                 lookup_table = ERPCity
             lookup_list = await dct_list(Session, lookup_table, is_active=True)
@@ -169,7 +171,7 @@ async def select_lookup(call: CallbackQuery, callback_data: dict, state: FSMCont
         dict_name = data['dict_name']
         line_id = int(data["line_id"])
     dict_class = DICT_LIST[dict_id]
-    if dict_class.__name__ == "ERPMaterial" or dict_class.__name__ == "ERPProduct":
+    if dict_class.__name__ == "ERPMaterial":
         if line_id and line_id > 0:
             dict_obj = await dct_update(Session, dict_class,
                                         id=line_id,
@@ -179,6 +181,16 @@ async def select_lookup(call: CallbackQuery, callback_data: dict, state: FSMCont
             dict_obj = await dct_create(Session, dict_class,
                                         name=dict_name,
                                         material_type_id=lookup_line_id)
+    elif dict_class.__name__ == "ERPProduct":
+        if line_id and line_id > 0:
+            dict_obj = await dct_update(Session, dict_class,
+                                        id=line_id,
+                                        name=dict_name,
+                                        product_type_id=lookup_line_id)
+        else:
+            dict_obj = await dct_create(Session, dict_class,
+                                        name=dict_name,
+                                        product_type_id=lookup_line_id)
     elif dict_class.__name__ == "ERPContractor":
         if line_id and line_id > 0:
             dict_obj = await dct_update(Session, dict_class,

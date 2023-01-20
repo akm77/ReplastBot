@@ -62,7 +62,7 @@ def get_shift_materials(materials: List[ERPShiftMaterialIntake]) -> str:
 def get_shift_products(products: List[ERPShiftProduction]) -> str:
     state = {'ok': '✅', 'todo': '‼️', 'back': '📛'}
     return "\n".join([f"#{product.id} "
-                      f"{product.product.name} ({product.product.material_type.name})"
+                      f"{product.product.name} ({product.product.product_type.name})"
                       f" - {product.quantity} кг"
                       f" {state[product.report_state]}"
                       for product in products])
@@ -578,7 +578,7 @@ async def _process_shift_products(call: CallbackQuery, callback_data: dict, stat
             data["message_id"] = call.message.message_id
             data["chat_id"] = call.message.chat.id
         selected_products_text = get_selected_products(selected_products)
-        products = await dct_list(Session, ERPProduct, joined_load=ERPProduct.material_type, is_active=True)
+        products = await dct_list(Session, ERPProduct, joined_load=ERPProduct.product_type, is_active=True)
         markup = multi_select_list_kb(products, list(map(int, selected_products.keys())), row_width=2)
         message_text = text(f"Дата смены:{shift_date.strftime('%d/%m/%Y')}\n"
                             f"Номер смены: {shift_number}\n"
@@ -628,7 +628,7 @@ async def _process_edit_product(call: CallbackQuery, callback_data: dict, state:
         data['callback_data'] = callback_data
     if callback_data["key_value"] == SelectEditData.SED_BACK:
         selected_products_text = get_selected_products(selected_products)
-        products = await dct_list(Session, ERPProduct, joined_load=ERPProduct.material_type, is_active=True)
+        products = await dct_list(Session, ERPProduct, joined_load=ERPProduct.product_type, is_active=True)
         markup = multi_select_list_kb(products, list(map(int, selected_products.keys())), row_width=2)
         message_text = text(f"Дата смены:{shift_date.strftime('%d/%m/%Y')}\n"
                             f"Номер смены: {shift_number}\n"

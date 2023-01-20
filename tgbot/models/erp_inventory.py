@@ -342,7 +342,7 @@ async def shift_report_read_shift(Session: sessionmaker, **kwargs) -> Optional[L
     statement = select(ERPShiftProduction).where(ERPShiftProduction.shift_date == shift_date,
                                                  ERPShiftProduction.shift_number == shift_number)
     statement = statement.order_by(ERPShiftProduction.id)
-    statement = statement.options(joinedload(ERPShiftProduction.product).joinedload(ERPProduct.material_type))
+    statement = statement.options(joinedload(ERPShiftProduction.product).joinedload(ERPProduct.product_type))
     async with Session() as session:
         result = await session.execute(statement)
         return result.scalars().all()

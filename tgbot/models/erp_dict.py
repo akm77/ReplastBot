@@ -51,6 +51,16 @@ class ERPMaterialType(ERPSimpleDict):
                 "name_name": "Название"}
 
 
+class ERPProductType(ERPSimpleDict):
+    __tablename__ = "erp_product_type"
+
+    @declared_attr
+    def hr_names(self):
+        return {"type": DictType.SIMPLE,
+                "table_name": "Типы продукции",
+                "name_name": "Название"}
+
+
 class ERPUnitOfMeasurement(ERPSimpleDict):
     __tablename__ = "erp_uom"
 
@@ -67,11 +77,11 @@ class ERPUnitOfMeasurement(ERPSimpleDict):
 class ERPProduct(ERPSimpleDict):
     __tablename__ = "erp_product"
 
-    material_type_id = Column(Integer,
-                              ForeignKey('erp_material_type.id', ondelete="RESTRICT", onupdate="CASCADE"))
+    product_type_id = Column(Integer,
+                             ForeignKey('erp_product_type.id', ondelete="RESTRICT", onupdate="CASCADE"))
     uom_code = Column(String(length=5),
                       ForeignKey('erp_uom.code', ondelete="RESTRICT", onupdate="CASCADE"), server_default=text("кг"))
-    material_type = relationship("ERPMaterialType", backref=backref("erp_product", uselist=False))
+    product_type = relationship("ERPProductType", backref=backref("erp_product", uselist=False))
 
     @declared_attr
     def hr_names(self):
@@ -126,7 +136,7 @@ class ERPContractor(ERPSimpleDict):
     is_buyer = Column(Boolean, nullable=False, server_default=expression.false())
 
 
-DICT_LIST = [ERPEmployee, ERPCity, ERPMaterialType, ERPProduct, ERPActivity, ERPMaterial, ERPContractor]
+DICT_LIST = [ERPEmployee, ERPCity, ERPMaterialType, ERPProductType, ERPProduct, ERPActivity, ERPMaterial, ERPContractor]
 
 
 async def dct_create(Session: sessionmaker, table_class: Base, **kwargs):
