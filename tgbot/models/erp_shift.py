@@ -181,63 +181,6 @@ async def shift_activity_list(Session: sessionmaker) -> Optional[Result]:
         return result
 
 
-async def shift_material_intake_list(Session: sessionmaker) -> Optional[Result]:
-    #     select esm.shift_date, em.name,
-    #        CASE esm.is_processed
-    #            WHEN 0 THEN 'Не принят'
-    #            WHEN 1 THEN 'Склад'
-    #        END AS state,
-    #        SUM(esm.quantity/100) as quantity
-    # FROM erp_shift_material_intake esm
-    # JOIN erp_material em ON esm.material_id = em.id
-    # group by esm.shift_date, em.name, esm.is_processed
-    statement = select(ERPShiftMaterialIntake.shift_date,
-                       ERPMaterial.name,
-                       case(
-                           (ERPShiftMaterialIntake.is_processed == 0, 'Не принят'),
-                           (ERPShiftMaterialIntake.is_processed == 1, 'Склад'),
-                       ).label('state'),
-                       func.sum(ERPShiftMaterialIntake.quantity).label("quantity")
-                       )
-    statement = statement.join(ERPShiftMaterialIntake.material)
-    statement = statement.group_by(ERPShiftMaterialIntake.shift_date,
-                                   ERPMaterial.name,
-                                   ERPShiftMaterialIntake.is_processed)
-    async with Session() as session:
-        result = await session.execute(statement)
-        return result
-
-
-async def shift_production_list(Session: sessionmaker) -> Optional[Result]:
-    # select esp.shift_date, ep.name,
-    # CASE esp.report_state
-    #     WHEN 'to_do' THEN 'Не принят'
-    #     WHEN 'ok' THEN 'Склад'
-    #     WHEN 'back' THEN 'Возврат'
-    # END AS report_state,
-    # COUNT(esp.id) as bag_num, SUM(esp.quantity/100) as quantity
-    # FROM erp_shift_production esp
-    # JOIN erp_product ep ON esp.product_id = ep.id
-    # group by esp.shift_date, ep.name, esp.report_state
-    statement = select(ERPShiftProduction.shift_date,
-                       ERPProduct.name,
-                       case(
-                           (ERPShiftProduction.report_state == 'todo', 'Не принят'),
-                           (ERPShiftProduction.report_state == 'ok', 'Склад'),
-                           (ERPShiftProduction.report_state == 'back', 'Возврат'),
-                       ).label('state'),
-                       func.count(ERPShiftProduction.id).label('bag_num'),
-                       func.sum(ERPShiftProduction.quantity).label('quantity')
-                       )
-    statement = statement.join(ERPShiftProduction.product)
-    statement = statement.group_by(ERPShiftProduction.shift_date,
-                                   ERPProduct.name,
-                                   ERPShiftProduction.report_state)
-    async with Session() as session:
-        result = await session.execute(statement)
-        return result
-
-
 async def get_cte_shift_dates(Session: sessionmaker):
     shift_min_max_dates = select(func.min(ERPShift.date).label('min_date'),
                                  func.max(ERPShift.date).label('max_date'))
@@ -258,6 +201,12 @@ def get_cte_day_shifts():
     return union_all(select(literal(1).label("shift_number")),
                      select(literal(2).label("shift_number")),
                      select(literal(3).label("shift_number"))).cte("shift")
+
+
+def get_cte_product_states():
+    return union_all(select(literal("todo").label("state")),
+                     select(literal("ok").label("state")),
+                     select(literal("back").label("state"))).cte("states")
 
 
 async def shift_bags_list(Session: sessionmaker) -> Optional[Result]:
@@ -289,6 +238,83 @@ async def shift_bags_list(Session: sessionmaker) -> Optional[Result]:
     async with Session() as session:
         result = await session.execute(statement)
     return result
+
+
+async def shift_material_intake_list(Session: sessionmaker) -> Optional[Result]:
+    #     select esm.shift_date, em.name,
+    #        CASE esm.is_processed
+    #            WHEN 0 THEN 'Не принят'
+    #            WHEN 1 THEN 'Склад'
+    #        END AS state,
+    #        SUM(esm.quantity/100) as quantity
+    # FROM erp_shift_material_intake esm
+    # JOIN erp_material em ON esm.material_id = em.id
+    # group by esm.shift_date, em.name, esm.is_processed
+    statement = select(ERPShiftMaterialIntake.shift_date,
+                       ERPMaterial.name,
+                       case(
+                           (ERPShiftMaterialIntake.is_processed == 0, 'Не принят'),
+                           (ERPShiftMaterialIntake.is_processed == 1, 'Склад'),
+                       ).label('state'),
+                       func.sum(ERPShiftMaterialIntake.quantity).label("quantity")
+                       )
+    statement = statement.join(ERPShiftMaterialIntake.material)
+    statement = statement.group_by(ERPShiftMaterialIntake.shift_date,
+                                   ERPMaterial.name,
+                                   ERPShiftMaterialIntake.is_processed)
+    async with Session() as session:
+        result = await session.execute(statement)
+        return result
+
+
+async def shift_production_list(Session: sessionmaker) -> Optional[Result]:
+    # WITH dates(DATE) AS (VALUES('2023-01-01')
+    #                      UNION ALL
+    #                      SELECT DATE(DATE, '+1 day')
+    #                      FROM dates
+    #                      WHERE DATE <= '2023-01-07'),
+    # report_state(state) AS (VALUES ('to_do'), ('ok'), ('back')),
+    # date_range AS (SELECT DATE, state
+    #                FROM dates
+    #                CROSS JOIN report_state)
+    #
+    # SELECT date_range.date AS shift_date,
+    #        ifnull(erp_product.name, 'я') AS name,
+    #        CASE WHEN (date_range.state = 'to_do') THEN 'Не принят'
+    #             WHEN (date_range.state= 'ok') THEN 'Склад'
+    #             WHEN (date_range.state = 'back') THEN 'Возврат'
+    #        END AS state,
+    #        count(erp_shift_production.id) AS bag_num,
+    #        sum(erp_shift_production.quantity) AS quantity
+    # FROM date_range
+    # LEFT JOIN erp_shift_production ON date_range.date = erp_shift_production.shift_date AND date_range.state = erp_shift_production.report_state
+    # LEFT JOIN erp_product ON erp_product.id = erp_shift_production.product_id
+    # GROUP BY date_range.date, erp_product.name, date_range.state
+
+    cte_dates = await get_cte_shift_dates(Session)
+    cte_product_states = get_cte_product_states()
+    cte_date_range = select(cte_dates.c.date, cte_product_states.c.shift_number).cte("date_range")
+    statement = select(cte_date_range.c.date.label("shift_date"),
+                       func.ifnull(ERPProduct.name, "я").label("name"),
+                       case(
+                           (cte_date_range.c.state == 'todo', 'Не принят'),
+                           (cte_date_range.c.state == 'ok', 'Склад'),
+                           (cte_date_range.c.state == 'back', 'Возврат'),
+                       ).label('state'),
+                       func.count(ERPShiftProduction.id).label('bag_num'),
+                       func.sum(ERPShiftProduction.quantity).label('quantity')
+                       )
+    statement = statement.join(ERPShiftProduction, and_(cte_date_range.c.date == ERPShiftProduction.shift_date,
+                                                        cte_date_range.c.state == ERPShiftProduction.report_state),
+                               isouter=True)
+    statement = statement.join(ERPProduct, ERPProduct.id == ERPShiftProduction.product_id,
+                               isouter=True)
+    statement = statement.group_by(cte_date_range.c.date,
+                                   ERPProduct.name,
+                                   cte_date_range.c.state)
+    async with Session() as session:
+        result = await session.execute(statement)
+        return result
 
 
 async def staff_time_sheet(Session: sessionmaker) -> Optional[Result]:
