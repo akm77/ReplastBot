@@ -293,7 +293,7 @@ async def shift_production_list(Session: sessionmaker) -> Optional[Result]:
 
     cte_dates = await get_cte_shift_dates(Session)
     cte_product_states = get_cte_product_states()
-    cte_date_range = select(cte_dates.c.date, cte_product_states.c.shift_number).cte("date_range")
+    cte_date_range = select(cte_dates.c.date, cte_product_states.c.state).cte("date_range")
     statement = select(cte_date_range.c.date.label("shift_date"),
                        func.ifnull(ERPProduct.name, "я").label("name"),
                        case(
