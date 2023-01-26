@@ -11,7 +11,7 @@ from gspread_formatting import CellFormat, Borders, Border, TextFormat, format_c
 from sqlalchemy.orm import sessionmaker
 
 from tgbot.misc.utils import convert_date_to_gsheet
-from tgbot.models.erp_shift import shift_activity_list, shift_material_intake_list, shift_production_list, \
+from tgbot.models.erp_shift_staff_activity import shift_activity_list, shift_material_intake_list, shift_production_list, \
     shift_bags_list, staff_time_sheet
 
 logger = logging.getLogger(__name__)

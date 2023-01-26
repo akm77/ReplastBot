@@ -28,6 +28,7 @@ class ERPShiftMaterialIntake(BaseModel):
                          ForeignKey('erp_material.id', ondelete="RESTRICT", onupdate="CASCADE"),
                          primary_key=True)
     material = relationship("ERPMaterial", backref=backref("material_intake", uselist=False))
+    shift = relationship("ERPShift", back_populates="shift_material_intake")
     quantity = Column(FinanceInteger, nullable=False, server_default=text("0"))
     is_processed = Column(Boolean, nullable=False, server_default=expression.false())
 
@@ -46,6 +47,7 @@ class ERPShiftProduction(BaseModel):
     shift_date = Column(Date(), server_default=func.date('now', 'localtime'))
     shift_number = Column(Integer, CheckConstraint("shift_number IN (1, 2, 3)", name="check_number"))
     product_id = Column(Integer, ForeignKey('erp_product.id', ondelete="RESTRICT", onupdate="CASCADE"))
+    shift = relationship("ERPShift", back_populates="shift_production")
     product = relationship("ERPProduct", backref=backref("product_shift_report", uselist=False))
     report_state = Column(String(length=4), CheckConstraint("report_state IN ('ok', 'todo', 'back')",
                                                             name="check_shift_report_state"),

@@ -2,13 +2,13 @@ from datetime import datetime
 from typing import Optional, List
 
 from sqlalchemy import func, Column, Integer, String, Date, ForeignKey, text, insert, select, delete, desc, \
-    ForeignKeyConstraint, CheckConstraint, update, tuple_, case, literal, union_all, and_
+    ForeignKeyConstraint, CheckConstraint, update, tuple_, case, literal, union_all, and_, asc
 from sqlalchemy.engine import Result
 from sqlalchemy.orm import relationship, backref, sessionmaker, joinedload
 
 from tgbot.models.base import TimedBaseModel, column_list, FinanceInteger
 from tgbot.models.erp_dict import ERPActivity, ERPMaterial, ERPProduct, ERPEmployee
-from tgbot.models.erp_inventory import ERPShiftMaterialIntake, ERPShiftProduction
+from tgbot.models.erp_shift_product_material import ERPShiftMaterialIntake, ERPShiftProduction
 
 
 class ERPShift(TimedBaseModel):
@@ -20,6 +20,8 @@ class ERPShift(TimedBaseModel):
     comment = Column(String(length=128), nullable=True)
     shift_staff = relationship("ERPShiftStaff", back_populates="shift")
     shift_activity = relationship("ERPShiftActivity", back_populates="shift")
+    shift_material_intake = relationship("ERPShiftMaterialIntake", back_populates="shift")
+    shift_production = relationship("ERPShiftProduction", back_populates="shift")
 
 
 class ERPShiftStaff(TimedBaseModel):
@@ -133,13 +135,16 @@ async def shift_delete(Session: sessionmaker, **kwargs) -> Optional[bool]:
 
 
 async def shift_list_full(Session: sessionmaker, **kwargs) -> Optional[List[ERPShift]]:
-    async with Session() as session:
-        statement = select(ERPShift)
-        if kwargs.get('date', None) is not None:
-            statement = statement.where(ERPShift.date == kwargs['date'])
+    statement = select(ERPShift)
+    if kwargs.get('date', None) is not None:
+        statement = statement.where(ERPShift.date == kwargs['date'])
+    if not kwargs.get('reverse'):
+        statement = statement.order_by(ERPShift.date, ERPShift.number)
+    else:
         statement = statement.order_by(desc(ERPShift.date), desc(ERPShift.number))
-        if kwargs.get('limit', None) is not None:
-            statement = statement.limit(kwargs['limit'])
+    if kwargs.get('limit', None) is not None:
+        statement = statement.limit(kwargs['limit'])
+    async with Session() as session:
         result = await session.execute(statement)
         return result.scalars().all()
 

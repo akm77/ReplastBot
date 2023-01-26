@@ -11,6 +11,8 @@ class EnvironmentMiddleware(LifetimeControllerMiddleware):
 
     async def pre_process(self, obj, data, *args):
 
+        data.update(**self.kwargs)
+
         if isinstance(obj, types.CallbackQuery):
             message: types.Message = obj.message
             await obj.answer()

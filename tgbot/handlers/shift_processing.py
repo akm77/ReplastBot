@@ -16,9 +16,9 @@ from tgbot.keyboards.shift_processing_inline import shift_kb, shift_menu_data, S
     SelectEditData
 from tgbot.misc.datepicker_settings import get_datepicker_settings
 from tgbot.models.erp_dict import dct_list, ERPEmployee, ERPActivity, dct_read, ERPMaterial, ERPProduct
-from tgbot.models.erp_inventory import ERPShiftMaterialIntake, material_intake_read_shift, material_intake_create, \
+from tgbot.models.erp_shift_product_material import ERPShiftMaterialIntake, material_intake_read_shift, material_intake_create, \
     shift_report_read_shift, ERPShiftProduction, shift_report_create
-from tgbot.models.erp_shift import shift_list_full, shift_create, shift_read, ERPShift, shift_navigator
+from tgbot.models.erp_shift_staff_activity import shift_list_full, shift_create, shift_read, ERPShift, shift_navigator
 from tgbot.widgets.aiogram_datepicker import Datepicker
 from tgbot.widgets.aiogram_datepicker.callback_data import datepicker_callback
 from tgbot.widgets.num_keypad.NumericKeypad import NumericKeypad
