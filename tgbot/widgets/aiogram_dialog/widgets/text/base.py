@@ -1,7 +1,7 @@
 from typing import Union, Dict
 
-from aiogram_dialog.manager.manager import DialogManager
-from aiogram_dialog.widgets.when import Whenable, WhenCondition, true
+from ...manager.manager import DialogManager
+from ...widgets.when import Whenable, WhenCondition, true
 
 
 class Text(Whenable):

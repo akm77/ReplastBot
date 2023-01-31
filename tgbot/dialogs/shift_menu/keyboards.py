@@ -1,48 +1,102 @@
 import operator
 
-from aiogram_dialog.widgets.kbd import Row, Button, Group, Cancel, Column, Next, ScrollingGroup, Select
-from aiogram_dialog.widgets.text import Const, Format
-
-from . import constants, onclick, events
-from .constants import ScrollingGroupId
-
-
-def shift_navigator(on_click):
-    return Group(
-        Row(
-            Button(Const("Staff"), id=constants.ShiftNavigatorButton.STAFF),
-            Button(Const("Product"), id=constants.ShiftNavigatorButton.PRODUCT),
-            Button(Const("Material"), id=constants.ShiftNavigatorButton.MATERIAL)
-        ),
-        Row(
-            Button(Const("<"), id=constants.ShiftNavigatorButton.BACK, on_click=onclick.on_shift_navigator),
-            Next(Const("#")),
-            Button(Const(">"), id=constants.ShiftNavigatorButton.NEXT, on_click=onclick.on_shift_navigator)
-        ),
-        Row(
-            Button(Const("Add +"), id=constants.ShiftNavigatorButton.ADD_SHIFT, on_click=onclick.on_new_shift),
-            Cancel(Const('Exit')),
-            Button(Const("Del -"), id=constants.ShiftNavigatorButton.DEL_SHIFT, on_click=onclick.on_delete_shift)
-        )
-    )
+from . import onclick, events, constants
+from .constants import ShiftDialogId
+from .states import ShiftMenu
+from ...widgets.aiogram_dialog.widgets.kbd import ScrollingGroup, Select, Column, Multiselect, SwitchTo, Row
+from ...widgets.aiogram_dialog.widgets.text import Format, Const
 
 
-def shift_list(on_click):
+def shift_list_kbd(on_click, on_page_changed, on_enter_page):
     return ScrollingGroup(
         Select(
             Format("{item[0]}"),
-            id=ScrollingGroupId.SHIFT_SELECT,
+            id=ShiftDialogId.SHIFT_SELECT,
             item_id_getter=operator.itemgetter(1),
             items="shift_list",
             on_click=on_click
         ),
-        id=ScrollingGroupId.SHIFT_GROUP,
+        id=ShiftDialogId.SHIFT_LIST,
         width=1, height=1,
-        on_page_changed=events.on_shift_list_page_changed
+        on_page_changed=on_page_changed,
+        on_enter_page=on_enter_page
     )
 
 
-def shift_staff():
+def shift_staff_kbd(on_click):
     return Column(
+        Select(
+            Format("{item[0]}"),
+            id=ShiftDialogId.SHIFT_STAFF,
+            item_id_getter=operator.itemgetter(1),
+            items="shift_staff",
+            on_click=on_click),
+        id=ShiftDialogId.SHIFT_STAFF_COLUMN)
 
+
+def shift_activity_kbd(on_click):
+    return Column(
+        Select(
+            Format("{item[0]}"),
+            id=ShiftDialogId.SHIFT_ACTIVITY,
+            item_id_getter=operator.itemgetter(1),
+            items="shift_activity",
+            on_click=on_click
+        ),
+        id=ShiftDialogId.SHIFT_ACTIVITY_COLUMN)
+
+
+def shift_material_kbd(on_click):
+    return Column(
+        Select(
+            Format("{item[0]}"),
+            id=ShiftDialogId.SHIFT_MATERIAL,
+            item_id_getter=operator.itemgetter(1),
+            items="shift_material",
+            on_click=on_click
+        ),
+        id=ShiftDialogId.SHIFT_MATERIAL_COLUMN)
+
+
+def shift_product_kbd(on_click):
+    return Column(
+        Select(
+            Format("{item[0]}"),
+            id=ShiftDialogId.SHIFT_PRODUCT,
+            item_id_getter=operator.itemgetter(1),
+            items="shift_product",
+            on_click=on_click
+        ),
+        id=ShiftDialogId.SHIFT_PRODUCT_COLUMN)
+
+
+def select_staff_kbd(on_click, on_state_changed, on_page_changed, on_enter_page):
+    return ScrollingGroup(
+        Multiselect(
+            Format("✓ {item[0]}"),
+            Format("{item[0]}"),
+            id=ShiftDialogId.SELECT_SHIFT_STAFF,
+            item_id_getter=operator.itemgetter(1),
+            items="employee",
+            on_click=on_click,
+            on_state_changed=on_state_changed
+        ),
+        id=ShiftDialogId.STAFF_LIST,
+        width=1, height=10,
+        hide_on_single_page=True,
+        on_page_changed=on_page_changed,
+        on_enter_page=on_enter_page
     )
+
+
+def switch_to_shift_list_kbd(on_click):
+    return Row(SwitchTo(Const("<< ✘"),
+                        id=constants.ShiftDialogId.DONT_SAVE_AND_SWITCH_TO_SHIFT_LIST,
+                        state=ShiftMenu.select_shift,
+                        on_click=None),
+               SwitchTo(Const("<< ✔︎"),
+                        id=constants.ShiftDialogId.SAVE_AND_SWITCH_TO_SHIFT_LIST,
+                        state=ShiftMenu.select_shift,
+                        on_click=on_click),
+               id=constants.ShiftDialogId.SWITCH_TO_SHIFT_LIST
+               )

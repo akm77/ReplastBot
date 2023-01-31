@@ -1,7 +1,7 @@
 from typing import Dict
 
-from aiogram_dialog.manager.manager import DialogManager
-from aiogram_dialog.widgets.when import WhenCondition
+from ...manager.manager import DialogManager
+from ...widgets.when import WhenCondition
 from .base import Text
 
 

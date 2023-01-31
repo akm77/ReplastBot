@@ -97,9 +97,27 @@ async def shift_read(Session: sessionmaker, **kwargs) -> Optional[ERPShift]:
     values = {k: v for k, v in kwargs.items() if k in column_list(ERPShift)}
     statement = select(ERPShift).where(ERPShift.date == kwargs['date'], ERPShift.number == kwargs['number'])
     statement = statement.options(joinedload(ERPShift.shift_staff,
-                                             innerjoin=False).joinedload(ERPShiftStaff.employee))
+                                             innerjoin=False
+                                             ).joinedload(
+        ERPShiftStaff.employee).joinedload(
+        ERPEmployee.erp_shift_staff, innerjoin=False))
     statement = statement.options(joinedload(ERPShift.shift_activity,
-                                             innerjoin=False).joinedload(ERPShiftActivity.activity))
+                                             innerjoin=False
+                                             ).joinedload(
+        ERPShiftActivity.activity).joinedload(
+        ERPActivity.erp_shift_activity, innerjoin=False))
+    # statement = statement.options(joinedload(ERPShiftActivity.activity,
+    #                                          innerjoin=False).joinedload(ERPActivity))
+    statement = statement.options(joinedload(ERPShift.shift_material_intake,
+                                             innerjoin=False
+                                             ).joinedload(
+        ERPShiftMaterialIntake.material).joinedload(
+        ERPMaterial.material_intake, innerjoin=False))
+    statement = statement.options(joinedload(ERPShift.shift_production,
+                                             innerjoin=False
+                                             ).joinedload(
+        ERPShiftProduction.product).joinedload(
+        ERPProduct.product_shift_report, innerjoin=False))
     async with Session() as session:
         result = await session.execute(statement)
         return result.scalar()
@@ -146,7 +164,19 @@ async def shift_list_full(Session: sessionmaker, **kwargs) -> Optional[List[ERPS
         statement = statement.limit(kwargs['limit'])
     async with Session() as session:
         result = await session.execute(statement)
-        return result.scalars().all()
+    return result.scalars().all()
+
+
+async def shift_staff_list(Session: sessionmaker, **kwargs) -> Optional[List[ERPShiftStaff]]:
+    if not (kwargs.get('shift_date') and kwargs.get('shift_number')):
+        return
+    shift_date = kwargs['shift_date']
+    shift_number = kwargs['shift_number']
+    statement = select(ERPShiftStaff).where(ERPShiftStaff.shift_date == shift_date,
+                                            ERPShiftStaff.shift_number == shift_number)
+    async with Session() as session:
+        result = await session.execute(statement)
+    return result.scalars().all()
 
 
 async def shift_navigator(Session: sessionmaker, direction: str = 'prev', **kwargs) -> Optional[List[ERPShift]]:
@@ -154,20 +184,40 @@ async def shift_navigator(Session: sessionmaker, direction: str = 'prev', **kwar
         return
     shift_date = kwargs['date']
     shift_number = kwargs['number']
-    async with Session() as session:
-        statement = select(ERPShift)
-        if direction == "prev":
-            statement = statement.where(tuple_(ERPShift.date, ERPShift.number) <
-                                        tuple_(shift_date, shift_number))
-            statement = statement.order_by(desc(ERPShift.date), desc(ERPShift.number))
+    statement = select(ERPShift)
+    if direction == "prev":
+        statement = statement.where(tuple_(ERPShift.date, ERPShift.number) <
+                                    tuple_(shift_date, shift_number))
+        statement = statement.order_by(desc(ERPShift.date), desc(ERPShift.number))
     if direction == "next":
         statement = statement.where(tuple_(ERPShift.date, ERPShift.number) >
                                     tuple_(shift_date, shift_number))
         statement = statement.order_by(ERPShift.date, ERPShift.number)
     if kwargs.get('limit', None):
         statement = statement.limit(kwargs['limit'])
-    result = await session.execute(statement)
+    async with Session() as session:
+        result = await session.execute(statement)
     return result.scalars().all()
+
+
+async def get_shift_row_number_on_date(Session: sessionmaker, shift_date: datetime.date) -> Optional[Result]:
+    # WITH max_date AS (select MAX(date) as shift_date
+    #                   FROM erp_shift
+    #                   WHERE date <= '2023-01-06'),
+    # numbered_shift AS (SELECT ROW_NUMBER() OVER(ORDER BY date, number) AS row_number, date
+    #                    FROM erp_shift)
+    # select numbered_shift.row_number
+    # FROM numbered_shift, max_date
+    # WHERE DATE =  max_date.shift_date
+    max_date = select(func.max(ERPShift.date).label("shift_date")).where(ERPShift.date <= shift_date).cte("max_date")
+    numbered_shift = select(func.row_number().over(order_by=tuple_(ERPShift.date,
+                                                                   ERPShift.number)).label("row_number"),
+                            ERPShift.date).cte("numbered_shift")
+    statement = select(numbered_shift.c.row_number,
+                       max_date.c.shift_date).where(numbered_shift.c.date == max_date.c.shift_date)
+    async with Session() as session:
+        result = await session.execute(statement)
+        return result
 
 
 async def shift_activity_list(Session: sessionmaker) -> Optional[Result]:

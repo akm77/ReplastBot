@@ -2,8 +2,8 @@ from typing import Callable, TypeVar, Generic, Awaitable, Union, Optional
 
 from aiogram.types import Message, ContentType
 
-from aiogram_dialog.manager.protocols import DialogManager, ManagedDialogProto
-from aiogram_dialog.widgets.widget_event import (
+from ...manager.protocols import DialogManager, ManagedDialogProto
+from ...widgets.widget_event import (
     WidgetEventProcessor, ensure_event_processor,
 )
 from .base import BaseInput

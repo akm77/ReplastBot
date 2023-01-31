@@ -4,7 +4,7 @@ from typing import Dict, Union, Sequence, Callable
 from .base import Text
 from ..when import WhenCondition
 
-from aiogram_dialog.manager.manager import DialogManager
+from ...manager.manager import DialogManager
 
 
 ItemsGetter = Callable[[Dict], Sequence]

@@ -3,11 +3,11 @@ from typing import Callable, Awaitable, List, Union
 from aiogram.dispatcher.filters import ContentTypeFilter
 from aiogram.types import Message
 
-from aiogram_dialog.manager.protocols import (
+from ...manager.protocols import (
     DialogManager, ManagedDialogAdapterProto, ManagedDialogProto
 )
-from aiogram_dialog.widgets.action import Actionable
-from aiogram_dialog.widgets.widget_event import (
+from ...widgets.action import Actionable
+from ...widgets.widget_event import (
     WidgetEventProcessor, ensure_event_processor,
 )
 

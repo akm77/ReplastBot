@@ -189,13 +189,13 @@ async def dct_delete(Session: sessionmaker, table_class: Base, **kwargs):
 async def dct_list(Session: sessionmaker, table_class: Base, joined_load=None, **kwargs):
     async with Session() as session:
         statement = select(table_class)
-        if not (kwargs.get('id', None) is None):
+        if kwargs.get('id'):
             statement = statement.where(table_class.id == kwargs['id'])
-        if not (kwargs.get('is_provider', None) is None):
+        if kwargs.get('is_provider'):
             statement = statement.where(table_class.is_provider == kwargs['is_provider'])
-        if not (kwargs.get('is_buyer', None) is None):
+        if kwargs.get('is_buyer'):
             statement = statement.where(table_class.is_buyer == kwargs['is_buyer'])
-        if not (kwargs.get('is_active', None) is None):
+        if kwargs.get('is_active'):
             statement = statement.where(table_class.is_active == kwargs['is_active'])
         if joined_load is not None:
             statement = statement.options(joinedload(joined_load, innerjoin=True))

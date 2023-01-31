@@ -3,7 +3,7 @@ from typing import List, Dict, Optional, Iterable
 
 from aiogram.types import InlineKeyboardButton, CallbackQuery
 
-from aiogram_dialog.manager.manager import DialogManager, ManagedDialogProto
+from ...manager.manager import DialogManager, ManagedDialogProto
 from .base import Keyboard
 from ..when import WhenCondition
 

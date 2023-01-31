@@ -2,9 +2,9 @@ from typing import List, Callable, Optional, Union, Dict, Awaitable
 
 from aiogram.types import InlineKeyboardButton, CallbackQuery, WebAppInfo
 
-from aiogram_dialog.manager.manager import DialogManager,ManagedDialogProto
-from aiogram_dialog.widgets.text import Text
-from aiogram_dialog.widgets.widget_event import WidgetEventProcessor, ensure_event_processor
+from ...manager.manager import DialogManager,ManagedDialogProto
+from ...widgets.text import Text
+from ...widgets.widget_event import WidgetEventProcessor, ensure_event_processor
 from .base import Keyboard
 from ..when import WhenCondition
 

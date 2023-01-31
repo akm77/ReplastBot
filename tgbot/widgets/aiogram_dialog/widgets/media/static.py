@@ -2,9 +2,9 @@ from typing import Optional, Any, Dict, Union
 
 from aiogram.types import ContentType
 
-from aiogram_dialog.manager.manager import DialogManager
-from aiogram_dialog.manager.protocols import MediaAttachment
-from aiogram_dialog.widgets.text import Text, Const
+from ...manager.manager import DialogManager
+from ...manager.protocols import MediaAttachment
+from ...widgets.text import Text, Const
 from .base import Media
 from ..when import WhenCondition
 

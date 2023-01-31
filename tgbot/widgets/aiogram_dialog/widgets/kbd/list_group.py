@@ -4,7 +4,7 @@ from typing import List, Dict, Optional, Union, Sequence, Callable, Any
 
 from aiogram.types import InlineKeyboardButton, CallbackQuery, Message
 
-from aiogram_dialog.manager.protocols import (
+from ...manager.protocols import (
     DialogManager, Context, ManagedDialogAdapterProto, NewMessage,
     ManagedDialogProto,
 )

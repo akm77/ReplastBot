@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Tuple, Optional
 
 from environs import Env
 from google.oauth2.service_account import Credentials
@@ -28,6 +28,7 @@ class Miscellaneous:
     shift_duration: int
     google_sheet_title: str
     scoped_credentials: Any = None
+    calendar_locale: Tuple[Optional[str], Optional[str]] = (None, None)
     other_params: str = None
 
 
@@ -56,6 +57,11 @@ def load_config(path: str = None):
     google_credentials = Credentials.from_service_account_file('tgbot/config-google.json')
     scoped_credentials = get_scoped_credentials(google_credentials, scopes)
 
+    try:
+        nl_langinfo, CODESET, *_ = list(map(str, env.list("CALENDAR_LOCALE")))
+    except:
+        nl_langinfo, CODESET = None, None
+
     return Config(
         tg_bot=TgBot(
             token=env.str("BOT_TOKEN"),
@@ -74,6 +80,7 @@ def load_config(path: str = None):
             tzinfo=env.str('TZINFO'),
             shift_duration=env.int('SHIFT_DURATION'),
             google_sheet_title=env.str('GOOGLE_SHEET_TITLE'),
-            scoped_credentials=scoped_credentials
+            scoped_credentials=scoped_credentials,
+            calendar_locale=(nl_langinfo, CODESET)
         )
     )

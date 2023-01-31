@@ -2,13 +2,13 @@ from typing import List, Dict, Optional, Callable, Awaitable, Union
 
 from aiogram.types import InlineKeyboardButton, CallbackQuery
 
-from aiogram_dialog.context.events import ChatEvent
-from aiogram_dialog.manager.protocols import DialogManager, ManagedDialogProto
-from aiogram_dialog.widgets.kbd.base import Keyboard
-from aiogram_dialog.widgets.managed import ManagedWidgetAdapter
-from aiogram_dialog.widgets.text import Const, Format, Text
-from aiogram_dialog.widgets.when import WhenCondition
-from aiogram_dialog.widgets.widget_event import WidgetEventProcessor, \
+from ...context.events import ChatEvent
+from ...manager.protocols import DialogManager, ManagedDialogProto
+from ...widgets.kbd.base import Keyboard
+from ...widgets.managed import ManagedWidgetAdapter
+from ...widgets.text import Const, Format, Text
+from ...widgets.when import WhenCondition
+from ...widgets.widget_event import WidgetEventProcessor, \
     ensure_event_processor
 
 OnClick = Callable[

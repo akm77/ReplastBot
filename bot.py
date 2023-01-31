@@ -62,7 +62,7 @@ async def main():
 
     register_all_middlewares(dp, config, bot['Session'])
     register_all_filters(dp)
-    setup_dialogs(dp)
+    setup_dialogs(dp, tz=config.misc.tzinfo, calendar_locale=config.misc.calendar_locale)
     register_all_handlers(dp)
 
     # start

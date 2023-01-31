@@ -2,9 +2,9 @@ from typing import List, Optional, Union
 
 from aiogram.types import InlineKeyboardButton, CallbackQuery
 
-from aiogram_dialog.manager.manager import DialogManager, ManagedDialogProto
-from aiogram_dialog.widgets.action import Actionable
-from aiogram_dialog.widgets.when import WhenCondition, Whenable
+from ...manager.manager import DialogManager, ManagedDialogProto
+from ...widgets.action import Actionable
+from ...widgets.when import WhenCondition, Whenable
 
 
 class Keyboard(Actionable, Whenable):

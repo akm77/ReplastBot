@@ -17,9 +17,22 @@ class ShiftNavigatorButton(str, Enum):
         return str.__str__(self)
 
 
-class ScrollingGroupId(str, Enum):
-    SHIFT_SELECT = "sgi_ss"
-    SHIFT_GROUP = "sgi_sg"
+class ShiftDialogId(str, Enum):
+    SHIFT_LIST = "sdi00"
+    SHIFT_SELECT = "sdi01"
+    SHIFT_STAFF = "sdi02"
+    SHIFT_STAFF_COLUMN = "sdi03"
+    SHIFT_ACTIVITY = "sdi04"
+    SHIFT_ACTIVITY_COLUMN = "sdi05"
+    SHIFT_MATERIAL = "sdi06"
+    SHIFT_MATERIAL_COLUMN = "sdi07"
+    SHIFT_PRODUCT = "sdi08"
+    SHIFT_PRODUCT_COLUMN = "sdi09"
+    SELECT_SHIFT_STAFF = "sdi10"
+    SWITCH_TO_SHIFT_LIST = "sdi11"
+    DONT_SAVE_AND_SWITCH_TO_SHIFT_LIST = "sdi12"
+    SAVE_AND_SWITCH_TO_SHIFT_LIST = "sdi13"
+    STAFF_LIST = "sdi14"
 
     def __str__(self) -> str:
         return str.__str__(self)

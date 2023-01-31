@@ -1,49 +1,38 @@
-from aiogram_dialog import Window
-from aiogram_dialog.widgets.kbd import Calendar, Back, Cancel, Row, Button, Next
-from aiogram_dialog.widgets.text import Const
-
-from tgbot.dialogs.shift_menu.states import ShiftMenu
-from . import keyboards, getters, onclick, constants
+from ...dialogs.shift_menu.states import ShiftMenu
+from . import keyboards, getters, onclick, events, constants
+from ...widgets.aiogram_dialog import Window
+from ...widgets.aiogram_dialog.widgets.kbd import Row, Button, Next, Cancel, Calendar, Back, SwitchTo
+from ...widgets.aiogram_dialog.widgets.text import Const
 
 
 def shift_window():
     return Window(
-        Const("Shift list"),
-        keyboards.shift_list(onclick.on_select_shift),
-        Row(Button(Const("<<"), id=constants.ShiftNavigatorButton.FIRST),
-            Next(Const("#")),
-            Button(Const(">>"), id=constants.ShiftNavigatorButton.FIRST)),
-        Cancel(),
+        Const("Смены по датам"),
+        keyboards.shift_list_kbd(onclick.on_select_shift, events.on_shift_list_page_changed, onclick.on_enter_page),
+        keyboards.shift_staff_kbd(onclick.on_select_staff_member),
+        keyboards.shift_activity_kbd(onclick.on_select_activity),
+        keyboards.shift_product_kbd(onclick.on_select_product),
+        keyboards.shift_material_kbd(onclick.on_select_material),
+        Cancel(Const("<<")),
         state=ShiftMenu.select_shift,
         getter=getters.get_shift_list
     )
-    # return Window(
-    #     Const(("01.01.2023, смена: 1 (10 ч)\n"
-    #            "---------------------\n"
-    #            "Персонал\n"
-    #            "Алена 10 ч.\n"
-    #            "Иван 10 ч.\n"
-    #            "---------------------\n"
-    #            "Сырье\n"
-    #            "Полигон 500- кг\n"
-    #            "Крышка 600- кг\n"
-    #            "---------------------\n"
-    #            "Продукция\n"
-    #            "ПГ #1086 500 кг\n"
-    #            "ПГ #1087 600 кг\n"
-    #            "ПЭТФ #1087 600 кг\n"
-    #            )),
-    #     keyboards.shift_navigator(onclick),
-    #     # Calendar(id='calendar', on_click=selected.on_date_selected, when=is_date_select),
-    #     state=ShiftMenu.select_shift,
-    #     getter=getters.get_shift
-    # )
 
 
-def choose_shift_date_window():
+def select_shift_date_window(tz: str = "UTC", calendar_locale=(None, None)):
     return Window(
         Const("Выберите дату"),
-        Calendar(id='calendar', on_click=onclick.on_date_selected),
+        Calendar(id='calendar', on_click=onclick.on_date_selected, tz=tz, calendar_locale=calendar_locale),
         Back(Const("<<")),
         state=ShiftMenu.select_date
+    )
+
+
+def select_staff_window():
+    return Window(
+        Const("Выберите сотрудников"),
+        keyboards.select_staff_kbd(onclick.on_select_employee, events.on_employee_state_changed, None, None),
+        keyboards.switch_to_shift_list_kbd(onclick.on_save_button_click),
+        state=ShiftMenu.select_staff,
+        getter=getters.get_employee_list
     )
