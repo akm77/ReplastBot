@@ -8,6 +8,7 @@ def shift_menu_dialogs(tz: str = "UTC", calendar_locale=(None, None)):
             windows.shift_window(),
             windows.select_shift_date_window(tz, calendar_locale),
             windows.select_staff_window(),
+            windows.update_staff_member_window(),
             on_start=events.on_start_shift_dialog,
             on_process_result=None
         )

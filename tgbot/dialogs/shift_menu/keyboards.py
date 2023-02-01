@@ -89,14 +89,14 @@ def select_staff_kbd(on_click, on_state_changed, on_page_changed, on_enter_page)
     )
 
 
-def switch_to_shift_list_kbd(on_click):
+def switch_to_shift_list_kbd(on_cancel_button_click, on_save_button_click):
     return Row(SwitchTo(Const("<< ✘"),
                         id=constants.ShiftDialogId.DONT_SAVE_AND_SWITCH_TO_SHIFT_LIST,
                         state=ShiftMenu.select_shift,
-                        on_click=None),
+                        on_click=on_cancel_button_click),
                SwitchTo(Const("<< ✔︎"),
                         id=constants.ShiftDialogId.SAVE_AND_SWITCH_TO_SHIFT_LIST,
                         state=ShiftMenu.select_shift,
-                        on_click=on_click),
+                        on_click=on_save_button_click),
                id=constants.ShiftDialogId.SWITCH_TO_SHIFT_LIST
                )

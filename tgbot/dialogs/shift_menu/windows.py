@@ -1,8 +1,9 @@
 from ...dialogs.shift_menu.states import ShiftMenu
 from . import keyboards, getters, onclick, events, constants
 from ...widgets.aiogram_dialog import Window
+from ...widgets.aiogram_dialog.widgets.input import TextInput
 from ...widgets.aiogram_dialog.widgets.kbd import Row, Button, Next, Cancel, Calendar, Back, SwitchTo
-from ...widgets.aiogram_dialog.widgets.text import Const
+from ...widgets.aiogram_dialog.widgets.text import Const, Format
 
 
 def shift_window():
@@ -32,7 +33,21 @@ def select_staff_window():
     return Window(
         Const("Выберите сотрудников"),
         keyboards.select_staff_kbd(onclick.on_select_employee, events.on_employee_state_changed, None, None),
-        keyboards.switch_to_shift_list_kbd(onclick.on_save_button_click),
+        keyboards.switch_to_shift_list_kbd(onclick.on_cancel_button_click, onclick.on_save_button_click),
         state=ShiftMenu.select_staff,
         getter=getters.get_employee_list
+    )
+
+
+def update_staff_member_window():
+    return Window(
+        Format("Отработанное время {employee_shift_date} смена {employee_shift_number} для {employee_name}.\n"
+               "Старое значение - {employee_hours_worked} ч.\n"
+               "👇Введите новое значение.👇"),
+        TextInput(id=constants.ShiftDialogId.ENTER_WORKED_HOURS,
+                  type_factory=float,
+                  on_success=events.on_success_enter_hours_worked,
+                  on_error=events.on_error_enter_hours_worked),
+        state=ShiftMenu.enter_hours_worked,
+        getter=getters.get_staff_employee
     )

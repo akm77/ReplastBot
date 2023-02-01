@@ -33,6 +33,7 @@ class ShiftDialogId(str, Enum):
     DONT_SAVE_AND_SWITCH_TO_SHIFT_LIST = "sdi12"
     SAVE_AND_SWITCH_TO_SHIFT_LIST = "sdi13"
     STAFF_LIST = "sdi14"
+    ENTER_WORKED_HOURS = "sdi15"
 
     def __str__(self) -> str:
         return str.__str__(self)

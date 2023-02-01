@@ -4,7 +4,7 @@ from typing import Optional, List
 from . import constants
 from .constants import ShiftDialogId
 from ...models.erp_dict import ERPEmployee, dct_list
-from ...models.erp_shift_staff_activity import shift_list_full, shift_read, ERPShift
+from ...models.erp_shift_staff_activity import shift_list_full, shift_read, ERPShift, get_shift_staff_member
 from ...widgets.aiogram_dialog import DialogManager
 from ...widgets.aiogram_dialog.widgets.kbd import Multiselect
 
@@ -85,11 +85,34 @@ async def get_employee_list(dialog_manager: DialogManager, **middleware_data):
     shift = await shift_read(session,
                              date=datetime.date.fromisoformat(shift_date),
                              number=int(shift_number))
-    shift_staff = [employee.employee_id for employee in shift.shift_staff]
-    ctx.widget_data.update(start_shift_staff=shift_staff)
+    start_shift_staff = [str(employee.employee_id) for employee in shift.shift_staff]
+    current_shift_staff = c if (c := ctx.widget_data.get("current_shift_staff")) is not None else start_shift_staff
+    ctx.widget_data.update(start_shift_staff=start_shift_staff)
+    ctx.widget_data.update(current_shift_staff=current_shift_staff)
     employee = [(employee.name, employee.id) for employee in db_employee_list]
     _ = [(await employee_ms.set_checked(event=dialog_manager.event,
                                         item_id=str(e[1]),
                                         checked=True,
-                                        manager=dialog_manager)) for e in employee if e[1] in shift_staff]
+                                        manager=dialog_manager)) for e in employee
+         if str(e[1]) in current_shift_staff]
     return {"employee": employee}
+
+
+async def get_staff_employee(dialog_manager: DialogManager, **middleware_data):
+    session = middleware_data.get('session')
+    ctx = dialog_manager.current_context()
+    shift_date = ctx.dialog_data.get("shift_date")
+    shift_number = ctx.dialog_data.get("shift_number")
+    employee_id = ctx.dialog_data.get("employee_id")
+    employee = await get_shift_staff_member(Session=session,
+                                            shift_date=datetime.date.fromisoformat(shift_date),
+                                            shift_number=int(shift_number),
+                                            employee_id=int(employee_id))
+    employee_name = employee.employee.name
+    employee_shift_date = employee.shift_date.strftime("%d.%m.%Y")
+    employee_shift_number = employee.shift_number
+    employee_hours_worked = employee.hours_worked
+    return {"employee_name": employee_name,
+            "employee_shift_date": employee_shift_date,
+            "employee_shift_number": employee_shift_number,
+            "employee_hours_worked": employee_hours_worked}

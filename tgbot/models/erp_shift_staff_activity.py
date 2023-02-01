@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Optional, List
 
-from sqlalchemy import func, Column, Integer, String, Date, ForeignKey, text, insert, select, delete, desc, \
+from sqlalchemy import func, Column, Integer, String, Date, ForeignKey, text, select, delete, desc, \
     ForeignKeyConstraint, CheckConstraint, update, tuple_, case, literal, union_all, and_, asc
+from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.engine import Result
 from sqlalchemy.orm import relationship, backref, sessionmaker, joinedload
 
@@ -64,7 +65,7 @@ class ERPShiftActivity(TimedBaseModel):
 
 
 async def shift_create(Session: sessionmaker, **kwargs) -> Optional[ERPShift]:
-    if kwargs.get('date', None) is None or kwargs.get('number', None) is None:
+    if not (kwargs.get('date') or kwargs.get('number')):
         return
     values = {k: v for k, v in kwargs.items() if k in column_list(ERPShift)}
     async with Session() as session:
@@ -91,8 +92,53 @@ async def shift_create(Session: sessionmaker, **kwargs) -> Optional[ERPShift]:
     return result
 
 
+async def upsert_shift_staff(Session: sessionmaker, **kwargs):
+    if not (kwargs.get('shift_date') or kwargs.get('shift_number') or kwargs.get('hours_worked')):
+        return
+    shift_date = kwargs.get('shift_date')
+    shift_number = kwargs.get('shift_number')
+    hours_worked = kwargs.get('hours_worked')
+    staff_for_add = s if (s := kwargs.get('staff_for_add')) else []
+    staff_for_delete = s if (s := kwargs.get('staff_for_delete')) else []
+    if not (len(staff_for_add) or len(staff_for_delete)):
+        return
+    delete_statement = delete(ERPShiftStaff).where(ERPShiftStaff.shift_date == shift_date,
+                                                   ERPShiftStaff.shift_number == shift_number,
+                                                   ERPShiftStaff.employee_id.in_(staff_for_delete))
+    values = [{"shift_date": shift_date,
+               "shift_number": shift_number,
+               "employee_id": e,
+               "hours_worked": hours_worked} for e in staff_for_add]
+    insert_statement = insert(ERPShiftStaff).values(values)
+    update_statement = insert_statement.on_conflict_do_update(
+        index_elements=["shift_date", "shift_number", "employee_id"],
+        set_=dict(hours_worked=insert_statement.excluded.hours_worked)
+    )
+    async with Session() as session:
+        if len(staff_for_delete):
+            await session.execute(delete_statement)
+        if len(staff_for_add):
+            await session.execute(update_statement)
+        await session.commit()
+
+
+async def get_shift_staff_member(Session: sessionmaker, **kwargs) -> Optional[ERPShiftStaff]:
+    if not (kwargs.get('shift_date') or kwargs.get('shift_number') or kwargs.get('employee_id')):
+        return
+    shift_date = kwargs.get('shift_date')
+    shift_number = kwargs.get('shift_number')
+    employee_id = kwargs.get('employee_id')
+    select_statement = select(ERPShiftStaff).where(ERPShiftStaff.shift_date == shift_date,
+                                                   ERPShiftStaff.shift_number == shift_number,
+                                                   ERPShiftStaff.employee_id == employee_id)
+    select_statement = select_statement.options(joinedload(ERPShiftStaff.employee))
+    async with Session() as session:
+        result = await session.execute(select_statement)
+    return result.scalar()
+
+
 async def shift_read(Session: sessionmaker, **kwargs) -> Optional[ERPShift]:
-    if kwargs.get('date', None) is None or kwargs.get('number', None) is None:
+    if not (kwargs.get('date') or kwargs.get('number')):
         return
     values = {k: v for k, v in kwargs.items() if k in column_list(ERPShift)}
     statement = select(ERPShift).where(ERPShift.date == kwargs['date'], ERPShift.number == kwargs['number'])
@@ -124,7 +170,7 @@ async def shift_read(Session: sessionmaker, **kwargs) -> Optional[ERPShift]:
 
 
 async def shift_update(Session: sessionmaker, **kwargs) -> Optional[ERPShift]:
-    if kwargs.get('date', None) is None or kwargs.get('number', None) is None:
+    if not (kwargs.get('date') or kwargs.get('number')):
         return
     # id = Column(String(length=11), primary_key=True)
     # shift_date = Column(Date(), server_default=func.date('now', 'localtime'))
@@ -141,7 +187,7 @@ async def shift_update(Session: sessionmaker, **kwargs) -> Optional[ERPShift]:
 
 
 async def shift_delete(Session: sessionmaker, **kwargs) -> Optional[bool]:
-    if kwargs.get('date', None) is None or kwargs.get('number', None) is None:
+    if not (kwargs.get('date') or kwargs.get('number')):
         return
 
     statement = delete(ERPShift).where(ERPShift.date == kwargs['date'],
@@ -154,7 +200,7 @@ async def shift_delete(Session: sessionmaker, **kwargs) -> Optional[bool]:
 
 async def shift_list_full(Session: sessionmaker, **kwargs) -> Optional[List[ERPShift]]:
     statement = select(ERPShift)
-    if kwargs.get('date', None) is not None:
+    if kwargs.get('date'):
         statement = statement.where(ERPShift.date == kwargs['date'])
     if not kwargs.get('reverse'):
         statement = statement.order_by(ERPShift.date, ERPShift.number)
@@ -168,7 +214,7 @@ async def shift_list_full(Session: sessionmaker, **kwargs) -> Optional[List[ERPS
 
 
 async def shift_staff_list(Session: sessionmaker, **kwargs) -> Optional[List[ERPShiftStaff]]:
-    if not (kwargs.get('shift_date') and kwargs.get('shift_number')):
+    if not (kwargs.get('shift_date') or kwargs.get('shift_number')):
         return
     shift_date = kwargs['shift_date']
     shift_number = kwargs['shift_number']
@@ -180,7 +226,7 @@ async def shift_staff_list(Session: sessionmaker, **kwargs) -> Optional[List[ERP
 
 
 async def shift_navigator(Session: sessionmaker, direction: str = 'prev', **kwargs) -> Optional[List[ERPShift]]:
-    if kwargs.get('date', None) is None or kwargs.get('number', None) is None:
+    if not (kwargs.get('date') or kwargs.get('number')):
         return
     shift_date = kwargs['date']
     shift_number = kwargs['number']
