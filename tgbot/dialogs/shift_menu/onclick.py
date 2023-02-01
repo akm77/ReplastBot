@@ -43,7 +43,6 @@ async def on_delete_shift(c: CallbackQuery, widget: Any, manager: DialogManager,
 async def on_select_staff_member(c: CallbackQuery, widget: Select, manager: DialogManager,
                                  employee_id: str):
     ctx = manager.current_context()
-    select = widget
     if int(employee_id) < 0:
         await manager.switch_to(ShiftMenu.select_staff)
         return
@@ -60,7 +59,7 @@ async def on_select_activity(c: CallbackQuery, widget: Any, manager: DialogManag
 async def on_select_material(c: CallbackQuery, widget: Any, manager: DialogManager,
                              material_id):
     ctx = manager.current_context()
-    dd = ctx.dialog_data
+    pass
 
 
 async def on_select_product(c: CallbackQuery, widget: Any, manager: DialogManager,
