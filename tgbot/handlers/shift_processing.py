@@ -18,7 +18,7 @@ from tgbot.misc.datepicker_settings import get_datepicker_settings
 from tgbot.models.erp_dict import dct_list, ERPEmployee, ERPActivity, dct_read, ERPMaterial, ERPProduct
 from tgbot.models.erp_shift_product_material import ERPShiftMaterialIntake, material_intake_read_shift, material_intake_create, \
     shift_report_read_shift, ERPShiftProduction, shift_report_create
-from tgbot.models.erp_shift_staff_activity import shift_list_full, shift_create, shift_read, ERPShift, shift_navigator
+from tgbot.models.erp_shift import ERPShift, shift_create, shift_list_full, shift_navigator, shift_read
 from tgbot.widgets.aiogram_datepicker import Datepicker
 from tgbot.widgets.aiogram_datepicker.callback_data import datepicker_callback
 from tgbot.widgets.num_keypad.NumericKeypad import NumericKeypad
@@ -64,7 +64,7 @@ def get_shift_products(products: List[ERPShiftProduction]) -> str:
     return "\n".join([f"#{product.id} "
                       f"{product.product.name} ({product.product.product_type.name})"
                       f" - {product.quantity} кг"
-                      f" {state[product.report_state]}"
+                      f" {state[product.state]}"
                       for product in products])
 
 

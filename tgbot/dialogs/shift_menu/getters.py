@@ -4,7 +4,8 @@ from typing import Optional, List
 from . import constants
 from .constants import ShiftDialogId
 from ...models.erp_dict import ERPEmployee, dct_list
-from ...models.erp_shift_staff_activity import shift_list_full, shift_read, ERPShift, get_shift_staff_member
+from ...models.erp_shift_staff_activity import get_shift_staff_member
+from ...models.erp_shift import ERPShift, shift_list_full, shift_read
 from ...widgets.aiogram_dialog import DialogManager
 from ...widgets.aiogram_dialog.widgets.kbd import Multiselect
 
@@ -35,7 +36,7 @@ def get_shift_product_list(shift: ERPShift) -> Optional[List]:
     product_button = [("<- ПРОДУКЦИЯ ->", "-1_-1")]
     return product_button + [(f"#{product.id} {product.product.name} - "
                               f"{product.quantity} {product.product.uom_code} "
-                              f"{state[product.report_state]}",
+                              f"{state[product.state]}",
                               f"{product.id}_{product.product_id}")
                              for product in shift.shift_production]
 

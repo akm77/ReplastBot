@@ -82,6 +82,7 @@ class ERPProduct(ERPSimpleDict):
     uom_code = Column(String(length=5),
                       ForeignKey('erp_uom.code', ondelete="RESTRICT", onupdate="CASCADE"), server_default=text("кг"))
     product_type = relationship("ERPProductType", backref=backref("erp_product", uselist=False))
+    product_uom = relationship("ERPUnitOfMeasurement", backref=backref("erp_product_uom", uselist=False))
 
     @declared_attr
     def hr_names(self):
@@ -116,6 +117,7 @@ class ERPMaterial(ERPSimpleDict):
     material_type = relationship("ERPMaterialType", backref=backref("erp_material", uselist=False))
     uom_code = Column(String(length=5),
                       ForeignKey('erp_uom.code', ondelete="RESTRICT", onupdate="CASCADE"), server_default=text("кг"))
+    material_uom = relationship("ERPUnitOfMeasurement", backref=backref("erp_material_uom", uselist=False))
     impurity = Column(FinanceInteger, nullable=False, server_default=text("1000"))
 
 

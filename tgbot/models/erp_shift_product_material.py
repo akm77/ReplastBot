@@ -43,15 +43,15 @@ class ERPShiftProduction(BaseModel):
             ondelete="RESTRICT", onupdate="CASCADE"
         ),
     )
-    id = Column(Integer, primary_key=True)  # Номер мещка
-    shift_date = Column(Date(), server_default=func.date('now', 'localtime'))
-    shift_number = Column(Integer, CheckConstraint("shift_number IN (1, 2, 3)", name="check_number"))
+    shift_date = Column(Date(), server_default=func.date('now', 'localtime'), primary_key=True)
+    shift_number = Column(Integer, CheckConstraint("shift_number IN (1, 2, 3)", name="check_number"), primary_key=True)
+    line_number = Column(Integer, primary_key=True)
     product_id = Column(Integer, ForeignKey('erp_product.id', ondelete="RESTRICT", onupdate="CASCADE"))
     shift = relationship("ERPShift", back_populates="shift_production")
     product = relationship("ERPProduct", backref=backref("product_shift_report", uselist=False))
-    report_state = Column(String(length=4), CheckConstraint("report_state IN ('ok', 'todo', 'back')",
-                                                            name="check_shift_report_state"),
-                          server_default=text("todo"))
+    state = Column(String(length=4), CheckConstraint("state IN ('ok', 'todo', 'back')",
+                                                     name="check_shift_product_state"),
+                   server_default=text("todo"))
     quantity = Column(FinanceInteger, nullable=False, server_default=text("0"))
 
 
