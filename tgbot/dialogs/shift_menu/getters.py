@@ -4,8 +4,7 @@ from typing import Optional, List
 from . import constants
 from .constants import ShiftDialogId
 from ...models.erp_dict import ERPEmployee, dct_list
-from ...models.erp_shift_staff_activity import get_shift_staff_member
-from ...models.erp_shift import ERPShift, shift_list_full, shift_read
+from ...models.erp_shift import ERPShift, shift_list_full, shift_read, get_shift_staff_member
 from ...widgets.aiogram_dialog import DialogManager
 from ...widgets.aiogram_dialog.widgets.kbd import Multiselect
 
@@ -19,7 +18,7 @@ def get_shift_staff_list(shift: ERPShift) -> Optional[List]:
 def get_shift_activity_list(shift: ERPShift) -> Optional[List]:
     activity_button = [("<- РАБОТЫ ->", -1)]
     return activity_button + [(f"{activity.activity.name}", activity.activity_id)
-                              for activity in shift.shift_activity]
+                              for activity in shift.shift_activities]
 
 
 def get_shift_material_list(shift: ERPShift) -> Optional[List]:
@@ -28,7 +27,7 @@ def get_shift_material_list(shift: ERPShift) -> Optional[List]:
                                f"{material.quantity} {material.material.uom_code} "
                                f"{'✅' if material.is_processed else '‼️'}",
                                f"{material.line_number}_{material.material_id}")
-                              for material in shift.shift_material_intake]
+                              for material in shift.shift_materials]
 
 
 def get_shift_product_list(shift: ERPShift) -> Optional[List]:
@@ -38,7 +37,7 @@ def get_shift_product_list(shift: ERPShift) -> Optional[List]:
                               f"{product.quantity} {product.product.uom_code} "
                               f"{state[product.state]}",
                               f"{product.id}_{product.product_id}")
-                             for product in shift.shift_production]
+                             for product in shift.shift_products]
 
 
 async def get_shift_list(dialog_manager: DialogManager, **middleware_data):
@@ -74,6 +73,10 @@ async def get_shift_list(dialog_manager: DialogManager, **middleware_data):
         "shift_product": shift_product
     }
     return data
+
+
+async def get_selected_shift(dialog_manager: DialogManager, **middleware_data):
+    pass
 
 
 async def get_employee_list(dialog_manager: DialogManager, **middleware_data):

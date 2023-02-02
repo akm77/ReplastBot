@@ -20,6 +20,16 @@ def shift_window():
     )
 
 
+def edit_shift_window():
+    return Window(
+        Const("Редактирование смены"),
+        Format("Дата: номер: время: "),
+        Cancel(Const("<<")),
+        state=ShiftMenu.edit_shift,
+        getter=getters.get_selected_shift
+    )
+
+
 def select_shift_date_window(tz: str = "UTC", calendar_locale=(None, None)):
     return Window(
         Const("Выберите дату"),

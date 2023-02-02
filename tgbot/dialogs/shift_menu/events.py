@@ -2,7 +2,7 @@ import datetime
 from typing import Any
 
 from .states import ShiftMenu
-from ...models.erp_shift_staff_activity import upsert_shift_staff
+from ...models.erp_shift import upsert_shift_staff
 from ...widgets.aiogram_dialog import DialogManager
 from ...widgets.aiogram_dialog.context.events import ChatEvent
 from ...widgets.aiogram_dialog.widgets.input import TextInput

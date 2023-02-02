@@ -7,8 +7,7 @@ from aiogram.types import CallbackQuery
 from . import constants
 from .states import ShiftMenu
 from ...config import Config
-from ...models.erp_shift_staff_activity import upsert_shift_staff
-from ...models.erp_shift import get_shift_row_number_on_date
+from ...models.erp_shift import get_shift_row_number_on_date, upsert_shift_staff
 from ...widgets.aiogram_dialog import DialogManager
 from ...widgets.aiogram_dialog.context.events import ChatEvent
 from ...widgets.aiogram_dialog.widgets.kbd import ManagedScrollingGroupAdapter, Button, Select, ScrollingGroup, \

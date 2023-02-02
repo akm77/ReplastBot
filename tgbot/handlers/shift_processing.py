@@ -16,9 +16,9 @@ from tgbot.keyboards.shift_processing_inline import shift_kb, shift_menu_data, S
     SelectEditData
 from tgbot.misc.datepicker_settings import get_datepicker_settings
 from tgbot.models.erp_dict import dct_list, ERPEmployee, ERPActivity, dct_read, ERPMaterial, ERPProduct
-from tgbot.models.erp_shift_product_material import ERPShiftMaterialIntake, material_intake_read_shift, material_intake_create, \
-    shift_report_read_shift, ERPShiftProduction, shift_report_create
-from tgbot.models.erp_shift import ERPShift, shift_create, shift_list_full, shift_navigator, shift_read
+from tgbot.models.erp_shift import ERPShift, shift_create, shift_list_full, shift_navigator, shift_read, \
+    ERPShiftMaterial, ERPShiftProduct, material_intake_create, material_intake_read_shift, shift_report_create, \
+    shift_report_read_shift
 from tgbot.widgets.aiogram_datepicker import Datepicker
 from tgbot.widgets.aiogram_datepicker.callback_data import datepicker_callback
 from tgbot.widgets.num_keypad.NumericKeypad import NumericKeypad
@@ -32,7 +32,7 @@ def get_staff(shift: ERPShift) -> str:
 
 
 def get_activity(shift: ERPShift) -> str:
-    return "\n".join([f"#{i} {activity.activity.name}" for i, activity in enumerate(shift.shift_activity, start=1)])
+    return "\n".join([f"#{i} {activity.activity.name}" for i, activity in enumerate(shift.shift_activities, start=1)])
 
 
 def get_selected_staff_text(staff_list: dict) -> str:
@@ -51,7 +51,7 @@ def get_selected_products(selected_products: dict) -> str:
          for item_id in selected_products])
 
 
-def get_shift_materials(materials: List[ERPShiftMaterialIntake]) -> str:
+def get_shift_materials(materials: List[ERPShiftMaterial]) -> str:
     return "\n".join([f"#{material.line_number} "
                       f"{material.material.name} ({material.material.material_type.name})"
                       f" - {material.quantity} кг"
@@ -59,7 +59,7 @@ def get_shift_materials(materials: List[ERPShiftMaterialIntake]) -> str:
                       for material in materials])
 
 
-def get_shift_products(products: List[ERPShiftProduction]) -> str:
+def get_shift_products(products: List[ERPShiftProduct]) -> str:
     state = {'ok': '✅', 'todo': '‼️', 'back': '📛'}
     return "\n".join([f"#{product.id} "
                       f"{product.product.name} ({product.product.product_type.name})"
