@@ -161,9 +161,13 @@ class Calendar(Keyboard, ABC):
                         callback_data=" ",
                     ))
                 else:
+                    current_day = datetime.datetime.now(tz=self.tzinfo).date()
+                    raw_current_date = int(mktime(date(current_day.year,
+                                                       current_day.month,
+                                                       current_day.day).timetuple()))
                     raw_date = int(mktime(date(offset.year, offset.month, day).timetuple()))
                     week_row.append(InlineKeyboardButton(
-                        text=str(day),
+                        text=f"•{day}•" if raw_current_date == raw_date else str(day),
                         callback_data=self._item_callback_data(raw_date),
                     ))
             days.append(week_row)
@@ -201,7 +205,6 @@ class Calendar(Keyboard, ABC):
         calendar_data: CalendarData = self.get_widget_data(manager, {})
         current_offset = calendar_data.get("current_offset")
         if current_offset is None:
-            d = datetime.datetime.now(tz=self.tzinfo)
             return datetime.datetime.now(tz=self.tzinfo).date()
         return date.fromisoformat(current_offset)
 

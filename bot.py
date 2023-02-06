@@ -13,7 +13,6 @@ from tgbot.handlers.admin import register_admin
 from tgbot.handlers.dict_setup import register_dict_setup
 from tgbot.handlers.echo import register_echo
 from tgbot.handlers.google_sheets_commands import register_sheet_commands
-from tgbot.handlers.new_shift_processing import register_shift_processing
 from tgbot.handlers.shift_processing import register_shift
 from tgbot.handlers.user import register_user
 from tgbot.middlewares.environment import EnvironmentMiddleware
@@ -34,7 +33,6 @@ def register_all_handlers(dp):
     register_admin(dp)
     register_user(dp)
     register_dict_setup(dp)
-    register_shift_processing(dp)
     # register_shift(dp)
     register_sheet_commands(dp)
     register_echo(dp)
@@ -48,7 +46,7 @@ async def main():
     logger.info("Starting bot")
     config = load_config(".env")
 
-    storage = RedisStorage2() if config.tg_bot.use_redis else MemoryStorage()
+    storage = RedisStorage2(prefix="r_fsm") if config.tg_bot.use_redis else MemoryStorage()
     # await storage.reset_all()
     bot = Bot(token=config.tg_bot.token, parse_mode='HTML')
     dp = Dispatcher(bot, storage=storage)

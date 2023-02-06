@@ -3,7 +3,8 @@ import operator
 from . import onclick, events, constants
 from .constants import ShiftDialogId
 from .states import ShiftMenu
-from ...widgets.aiogram_dialog.widgets.kbd import ScrollingGroup, Select, Column, Multiselect, SwitchTo, Row, Radio
+from ...widgets.aiogram_dialog.widgets.kbd import ScrollingGroup, Select, Column, Multiselect, SwitchTo, Row, Radio, \
+    Button
 from ...widgets.aiogram_dialog.widgets.text import Format, Const
 
 
@@ -94,7 +95,7 @@ def switch_to_shift_list_kbd(on_cancel_button_click, on_save_button_click):
                         id=constants.ShiftDialogId.DONT_SAVE_AND_SWITCH_TO_SHIFT_LIST,
                         state=ShiftMenu.select_shift,
                         on_click=on_cancel_button_click),
-               SwitchTo(Const("<< ✔︎"),
+               SwitchTo(Const("<< ✓"),
                         id=constants.ShiftDialogId.SAVE_AND_SWITCH_TO_SHIFT_LIST,
                         state=ShiftMenu.select_shift,
                         on_click=on_save_button_click),
@@ -103,12 +104,12 @@ def switch_to_shift_list_kbd(on_cancel_button_click, on_save_button_click):
 
 
 def select_shift_number_kbd(on_click=None, on_state_changed=None):
-    return Radio(
-        Format("☑︎ {item[0]}"),
-        Format("☐ {item[0]}"),
-        id="r_s_n",
+    return Row(Radio(
+        Format("☑︎ ︎{item[0]}"),
+        Format("︎☐ {item[0]}"),
+        id="r_s_n",  # todo
         item_id_getter=operator.itemgetter(1),
         items="shift_numbers",
         on_click=on_click,
-        on_state_changed=on_state_changed
+        on_state_changed=on_state_changed),
     )

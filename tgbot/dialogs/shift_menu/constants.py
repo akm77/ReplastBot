@@ -18,6 +18,7 @@ class ShiftNavigatorButton(str, Enum):
 
 
 class ShiftDialogId(str, Enum):
+    SHIFT_DIALOG_EXIT = "sdi_exit"
     SHIFT_LIST = "sdi00"
     SHIFT_SELECT = "sdi01"
     SHIFT_STAFF = "sdi02"
@@ -34,6 +35,8 @@ class ShiftDialogId(str, Enum):
     SAVE_AND_SWITCH_TO_SHIFT_LIST = "sdi13"
     STAFF_LIST = "sdi14"
     ENTER_WORKED_HOURS = "sdi15"
+    SHIFT_DURATION_BUTTON = "sdi16"
+    NEW_SHIFT = "sdi17"
 
     def __str__(self) -> str:
         return str.__str__(self)

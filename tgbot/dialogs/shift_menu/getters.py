@@ -76,7 +76,10 @@ async def get_shift_list(dialog_manager: DialogManager, **middleware_data):
 
 
 async def get_selected_shift(dialog_manager: DialogManager, **middleware_data):
-    pass
+    return {"shift_date": "02.02.2023",
+            "shift_number": 1,
+            "shift_duration": 10,
+            "shift_numbers": [(1, 1), (2, 2), (3, 3)]}
 
 
 async def get_employee_list(dialog_manager: DialogManager, **middleware_data):

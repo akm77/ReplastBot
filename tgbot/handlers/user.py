@@ -11,4 +11,4 @@ async def user_start(message: Message, dialog_manager: DialogManager, state: FSM
 
 
 def register_user(dp: Dispatcher):
-    dp.register_message_handler(user_start, commands=["shft"], state="*")
+    dp.register_message_handler(user_start, commands=["shift"], state="*")

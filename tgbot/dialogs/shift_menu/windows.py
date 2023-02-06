@@ -1,8 +1,8 @@
-from ...dialogs.shift_menu.states import ShiftMenu
 from . import keyboards, getters, onclick, events, constants
+from ...dialogs.shift_menu.states import ShiftMenu
 from ...widgets.aiogram_dialog import Window
 from ...widgets.aiogram_dialog.widgets.input import TextInput
-from ...widgets.aiogram_dialog.widgets.kbd import Row, Button, Next, Cancel, Calendar, Back, SwitchTo
+from ...widgets.aiogram_dialog.widgets.kbd import Row, Button, Calendar, Back, SwitchTo, Cancel
 from ...widgets.aiogram_dialog.widgets.text import Const, Format
 
 
@@ -14,7 +14,10 @@ def shift_window():
         keyboards.shift_activity_kbd(onclick.on_select_activity),
         keyboards.shift_product_kbd(onclick.on_select_product),
         keyboards.shift_material_kbd(onclick.on_select_material),
-        Cancel(Const("<<")),
+        Cancel(Const("<<"),
+               id=constants.ShiftDialogId.SHIFT_DIALOG_EXIT,
+               on_click=onclick.on_click_exit,
+               result=True),
         state=ShiftMenu.select_shift,
         getter=getters.get_shift_list
     )
@@ -22,10 +25,31 @@ def shift_window():
 
 def edit_shift_window():
     return Window(
-        Const("Редактирование смены"),
-        Format("Дата: номер: время: "),
-        Cancel(Const("<<")),
+        Const("Смена 👇"),
+        Format("Дата: {shift_date} номер: {shift_number} время: {shift_duration} ч"),
+        keyboards.select_shift_number_kbd(),
+        Button(Format("<< {shift_duration} ч >>"),
+               id=constants.ShiftDialogId.SHIFT_DURATION_BUTTON,
+               on_click=onclick.on_select_shift_duration),
+        Row(
+            keyboards.switch_to_shift_list_kbd(onclick.on_cancel_button_click, onclick.on_save_button_click),
+            SwitchTo(Const("<< + >>"),
+                     id=constants.ShiftDialogId.NEW_SHIFT,
+                     state=ShiftMenu.new_shift)
+        ),
         state=ShiftMenu.edit_shift,
+        getter=getters.get_selected_shift
+    )
+
+
+def new_shift_window(tz: str = "UTC", calendar_locale=(None, None)):
+    return Window(
+        Const("Смена 👇"),
+        keyboards.select_shift_number_kbd(),
+        Format("Дата: {shift_date} номер: {shift_number} время: {shift_duration} ч"),
+        Calendar(id='calendar', on_click=onclick.on_date_selected, tz=tz, calendar_locale=calendar_locale),
+        # keyboards.switch_to_shift_list_kbd(onclick.on_cancel_button_click, onclick.on_save_button_click),
+        state=ShiftMenu.new_shift,
         getter=getters.get_selected_shift
     )
 

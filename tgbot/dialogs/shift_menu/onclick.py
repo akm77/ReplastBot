@@ -24,12 +24,21 @@ async def on_date_selected(c: CallbackQuery, widget: Any,
     await manager.dialog().back()
 
 
+async def on_click_exit(c: ChatEvent, widget: Button, manager: DialogManager):
+    await manager.done()
+    await c.message.delete()
+
+
 async def on_enter_page(c: ChatEvent, adapter: ManagedScrollingGroupAdapter, manager: DialogManager):
     await manager.dialog().next()
 
 
-async def on_select_shift(c: CallbackQuery, button: Button, manager: DialogManager, shift_id: str):
+async def on_select_shift_duration(c: CallbackQuery, button: Button, manager: DialogManager):
     pass
+
+
+async def on_select_shift(c: CallbackQuery, button: Button, manager: DialogManager, shift_id: str):
+    await manager.switch_to(ShiftMenu.edit_shift)
 
 
 async def on_new_shift(c: CallbackQuery, widget: Any, manager: DialogManager, shift_date: date):
