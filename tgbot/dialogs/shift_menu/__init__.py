@@ -11,6 +11,7 @@ def shift_menu_dialogs(tz: str = "UTC", calendar_locale=(None, None)):
             windows.update_staff_member_window(),
             windows.edit_shift_window(),
             windows.new_shift_window(tz, calendar_locale),
+            windows.edit_shift_duration_window(),
             on_start=events.on_start_shift_dialog,
             on_process_result=events.on_process_result_shift_dialog,
             on_close=events.on_close_shift_dialog

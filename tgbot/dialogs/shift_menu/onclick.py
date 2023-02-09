@@ -11,7 +11,7 @@ from ...models.erp_shift import get_shift_row_number_on_date, upsert_shift_staff
 from ...widgets.aiogram_dialog import DialogManager
 from ...widgets.aiogram_dialog.context.events import ChatEvent
 from ...widgets.aiogram_dialog.widgets.kbd import ManagedScrollingGroupAdapter, Button, Select, ScrollingGroup, \
-    Multiselect
+    Multiselect, Radio
 
 
 async def on_date_selected(c: CallbackQuery, widget: Any,
@@ -34,7 +34,8 @@ async def on_enter_page(c: ChatEvent, adapter: ManagedScrollingGroupAdapter, man
 
 
 async def on_select_shift_duration(c: CallbackQuery, button: Button, manager: DialogManager):
-    pass
+    ctx = manager.current_context()
+    await manager.switch_to(ShiftMenu.edit_shift_duration)
 
 
 async def on_select_shift(c: CallbackQuery, button: Button, manager: DialogManager, shift_id: str):
@@ -94,6 +95,8 @@ async def on_cancel_button_click(c: CallbackQuery, button: Button, manager: Dial
         if ctx.widget_data.get("current_shift_staff"):
             ctx.widget_data.pop("current_shift_staff")
         await employee_ms.reset_checked(event=c, manager=manager)
+    elif current_state == ShiftMenu.edit_shift:
+        ctx.widget_data.pop(constants.ShiftDialogId.SHIFT_NUMBER_SELECT)
 
 
 async def on_save_button_click(c: CallbackQuery, button: Button, manager: DialogManager):
@@ -118,3 +121,5 @@ async def on_save_button_click(c: CallbackQuery, button: Button, manager: Dialog
                                  hours_worked=config.misc.shift_duration,
                                  staff_for_add=staff_for_add,
                                  staff_for_delete=staff_for_delete)
+    elif current_state == ShiftMenu.edit_shift:
+        ctx.widget_data.pop(constants.ShiftDialogId.SHIFT_NUMBER_SELECT)

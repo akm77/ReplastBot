@@ -254,6 +254,15 @@ async def shift_read(Session: sessionmaker, **kwargs) -> Optional[ERPShift]:
         return result.scalar()
 
 
+async def select_day_shift_numbers(Session: sessionmaker, **kwargs) -> Optional[List[ERPShift]]:
+    if not kwargs.get('date'):
+        return
+    statement = select(ERPShift).where(ERPShift.date == kwargs['date'])
+    async with Session() as session:
+        result = await session.execute(statement)
+        return result.scalars().all()
+
+
 async def material_intake_create(Session: sessionmaker, **kwargs) -> Optional[List[ERPShiftMaterial]]:
     """
     Create list of materials that did intake. kwargs must have the following attributes:

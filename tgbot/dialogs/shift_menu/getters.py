@@ -4,9 +4,9 @@ from typing import Optional, List
 from . import constants
 from .constants import ShiftDialogId
 from ...models.erp_dict import ERPEmployee, dct_list
-from ...models.erp_shift import ERPShift, shift_list_full, shift_read, get_shift_staff_member
+from ...models.erp_shift import ERPShift, shift_list_full, shift_read, get_shift_staff_member, select_day_shift_numbers
 from ...widgets.aiogram_dialog import DialogManager
-from ...widgets.aiogram_dialog.widgets.kbd import Multiselect
+from ...widgets.aiogram_dialog.widgets.kbd import Multiselect, Radio
 
 
 def get_shift_staff_list(shift: ERPShift) -> Optional[List]:
@@ -46,15 +46,20 @@ async def get_shift_list(dialog_manager: DialogManager, **middleware_data):
 
     db_shift_list = await shift_list_full(session, reverse=False)
     shift_list = [
-        (f'{shift.date: %d.%m.%Y} смена: {shift.number} ({shift.duration} ч)', f'{shift.date}_{shift.number}')
+        (f'{shift.date: %d.%m.%Y} смена: {shift.number} ({shift.duration} ч)',
+         f'{shift.date}_{shift.number}_{shift.duration}')
         for shift in db_shift_list
     ]
     page = int(page) if (page := ctx.widget_data.get(constants.ShiftDialogId.SHIFT_LIST)) else 0
-    shift_date, shift_number = shift_list[page][1].split("_")
-    ctx.dialog_data.update(shift_date=shift_date, shift_number=shift_number)
+    shift_date, shift_number, shift_duration = shift_list[page][1].split("_")
+    ctx.dialog_data.update(shift_date=shift_date, shift_number=shift_number, shift_duration=shift_duration)
     shift = await shift_read(session,
                              date=datetime.date.fromisoformat(shift_date),
                              number=int(shift_number))
+    db_day_shift_numbers = await select_day_shift_numbers(session,
+                                                          date=datetime.date.fromisoformat(shift_date))
+    day_shift_numbers = [shift.number for shift in db_day_shift_numbers]
+    ctx.dialog_data.update(day_shift_numbers=day_shift_numbers)
     shift_staff = []
     shift_activity = []
     shift_material = []
@@ -76,10 +81,22 @@ async def get_shift_list(dialog_manager: DialogManager, **middleware_data):
 
 
 async def get_selected_shift(dialog_manager: DialogManager, **middleware_data):
-    return {"shift_date": "02.02.2023",
-            "shift_number": 1,
-            "shift_duration": 10,
-            "shift_numbers": [(1, 1), (2, 2), (3, 3)]}
+    ctx = dialog_manager.current_context()
+    shift_date = datetime.date.fromisoformat(ctx.dialog_data.get("shift_date"))
+    shift_number = ctx.dialog_data.get("shift_number")
+    shift_duration = float(ctx.dialog_data.get("shift_duration"))
+    day_shift_numbers = ctx.dialog_data.get("day_shift_numbers")
+    shift_numbers = [(int(shift_number), int(shift_number)) for shift_number in day_shift_numbers]
+    radio: Radio = dialog_manager.dialog().find(constants.ShiftDialogId.SHIFT_NUMBER_SELECT)
+    d = radio.get_checked(dialog_manager)
+    if not radio.get_checked(dialog_manager):
+        await radio.set_checked(event=dialog_manager.event,
+                                item_id=shift_number,
+                                manager=dialog_manager)
+    return {"shift_date": shift_date,
+            "shift_number": shift_number,
+            "shift_duration": shift_duration,
+            "shift_numbers": shift_numbers}
 
 
 async def get_employee_list(dialog_manager: DialogManager, **middleware_data):

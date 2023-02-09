@@ -27,17 +27,25 @@ def edit_shift_window():
     return Window(
         Const("Смена 👇"),
         Format("Дата: {shift_date} номер: {shift_number} время: {shift_duration} ч"),
-        keyboards.select_shift_number_kbd(),
         Button(Format("<< {shift_duration} ч >>"),
                id=constants.ShiftDialogId.SHIFT_DURATION_BUTTON,
                on_click=onclick.on_select_shift_duration),
-        Row(
-            keyboards.switch_to_shift_list_kbd(onclick.on_cancel_button_click, onclick.on_save_button_click),
-            SwitchTo(Const("<< + >>"),
-                     id=constants.ShiftDialogId.NEW_SHIFT,
-                     state=ShiftMenu.new_shift)
-        ),
+        SwitchTo(Const("<< + >>"),
+                 id=constants.ShiftDialogId.NEW_SHIFT,
+                 state=ShiftMenu.new_shift),
         state=ShiftMenu.edit_shift,
+        getter=getters.get_selected_shift
+    )
+
+
+def edit_shift_duration_window():
+    return Window(
+        Const("Смена 👇"),
+        Format("Дата: {shift_date} номер: {shift_number} время: {shift_duration} ч"),
+        TextInput(id=constants.ShiftDialogId.ENTER_SHIFT_DURATION,
+                  type_factory=float,
+                  on_success=events.on_success_enter_shift_duration),
+        state=ShiftMenu.edit_shift_duration,
         getter=getters.get_selected_shift
     )
 

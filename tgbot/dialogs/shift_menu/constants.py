@@ -37,6 +37,8 @@ class ShiftDialogId(str, Enum):
     ENTER_WORKED_HOURS = "sdi15"
     SHIFT_DURATION_BUTTON = "sdi16"
     NEW_SHIFT = "sdi17"
+    SHIFT_NUMBER_SELECT = "sdi18"
+    ENTER_SHIFT_DURATION = "sdi19"
 
     def __str__(self) -> str:
         return str.__str__(self)
