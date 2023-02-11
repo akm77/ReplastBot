@@ -14,14 +14,19 @@ from ...widgets.aiogram_dialog.widgets.kbd import ManagedScrollingGroupAdapter, 
     Multiselect, Radio
 
 
+async def on_click_calendar_back(c: CallbackQuery, widget: Button, manager: DialogManager):
+    pass
+
+
 async def on_date_selected(c: CallbackQuery, widget: Any,
                            manager: DialogManager, selected_date: date):
+    ctx = manager.current_context()
     session = manager.data.get("session")
     scrolling_group: ScrollingGroup = manager.dialog().find(constants.ShiftDialogId.SHIFT_LIST)
     result = (await get_shift_row_number_on_date(session, selected_date)).one_or_none()
     page = result.row_number - 1 if result else 0
     await scrolling_group.set_page(c, page, manager)
-    await manager.dialog().back()
+    await manager.switch_to(ShiftMenu.select_shift)
 
 
 async def on_click_exit(c: ChatEvent, widget: Button, manager: DialogManager):
@@ -30,7 +35,7 @@ async def on_click_exit(c: ChatEvent, widget: Button, manager: DialogManager):
 
 
 async def on_enter_page(c: ChatEvent, adapter: ManagedScrollingGroupAdapter, manager: DialogManager):
-    await manager.dialog().next()
+    await manager.switch_to(ShiftMenu.select_shift_date)
 
 
 async def on_select_shift_duration(c: CallbackQuery, button: Button, manager: DialogManager):

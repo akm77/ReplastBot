@@ -88,11 +88,11 @@ async def get_selected_shift(dialog_manager: DialogManager, **middleware_data):
     day_shift_numbers = ctx.dialog_data.get("day_shift_numbers")
     shift_numbers = [(int(shift_number), int(shift_number)) for shift_number in day_shift_numbers]
     radio: Radio = dialog_manager.dialog().find(constants.ShiftDialogId.SHIFT_NUMBER_SELECT)
-    d = radio.get_checked(dialog_manager)
-    if not radio.get_checked(dialog_manager):
-        await radio.set_checked(event=dialog_manager.event,
-                                item_id=shift_number,
-                                manager=dialog_manager)
+    # d = radio.get_checked(dialog_manager)
+    # if not radio.get_checked(dialog_manager):
+    #     await radio.set_checked(event=dialog_manager.event,
+    #                             item_id=shift_number,
+    #                             manager=dialog_manager)
     return {"shift_date": shift_date,
             "shift_number": shift_number,
             "shift_duration": shift_duration,

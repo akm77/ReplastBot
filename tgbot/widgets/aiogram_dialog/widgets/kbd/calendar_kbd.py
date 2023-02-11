@@ -1,6 +1,6 @@
 import datetime
 from abc import ABC
-from calendar import monthcalendar, different_locale, day_name, day_abbr, month_name, month_abbr
+from calendar import monthcalendar, different_locale, day_abbr, month_abbr
 from datetime import date
 from time import mktime
 from typing import List, Callable, Union, Awaitable, TypedDict, Optional
@@ -8,15 +8,16 @@ from zoneinfo import ZoneInfo
 
 from aiogram.types import InlineKeyboardButton, CallbackQuery
 
+from .base import Keyboard
+from ..managed import ManagedWidgetAdapter
 from ...context.events import ChatEvent
+from ...deprecation_utils import manager_deprecated
 from ...manager.protocols import DialogManager, ManagedDialogProto
 from ...widgets.widget_event import WidgetEventProcessor, \
     ensure_event_processor
-from .base import Keyboard
-from ..managed import ManagedWidgetAdapter
-from ...deprecation_utils import manager_deprecated
 
 OnDateSelected = Callable[[ChatEvent, "ManagedCalendarAdapter", DialogManager, date], Awaitable]
+SetMarkedDate = Callable[[ChatEvent, "ManagedCalendarAdapter", DialogManager, date], Awaitable]
 
 # Constants for managing widget rendering scope
 SCOPE_DAYS = "SCOPE_DAYS"
@@ -43,6 +44,7 @@ class Calendar(Keyboard, ABC):
     def __init__(self,
                  id: str,
                  on_click: Union[OnDateSelected, WidgetEventProcessor, None] = None,
+                 marked_day: Union[datetime.date, datetime.datetime, Callable, None] = None,
                  when: Union[str, Callable] = None,
                  tz: str = "UTC",
                  calendar_locale=(None, None)):
@@ -50,10 +52,22 @@ class Calendar(Keyboard, ABC):
         self.tzinfo = ZoneInfo(tz)
         self.calendar_locale = calendar_locale
         self.on_click = ensure_event_processor(on_click)
+        self.marked_day = None
+        self.__marked_day_getter = None
+        if isinstance(marked_day, datetime.date):
+            self.marked_day = marked_day
+        elif isinstance(marked_day, datetime.datetime):
+            self.marked_day = marked_day.date()
+        elif isinstance(marked_day, Callable):
+            self.__marked_day_getter = marked_day
 
     async def _render_keyboard(self,
                                data,
                                manager: DialogManager) -> List[List[InlineKeyboardButton]]:
+        if self.__marked_day_getter and isinstance(self.__marked_day_getter, Callable):
+            self.marked_day = self.__marked_day_getter(manager)
+            if not isinstance(self.marked_day, datetime.date):
+                self.marked_day = None
         offset = self.get_offset(manager)
         current_scope = self.get_scope(manager)
 
@@ -165,9 +179,18 @@ class Calendar(Keyboard, ABC):
                     raw_current_date = int(mktime(date(current_day.year,
                                                        current_day.month,
                                                        current_day.day).timetuple()))
+                    raw_marked_day = int(mktime(date(self.marked_day.year,
+                                                     self.marked_day.month,
+                                                     self.marked_day.day).timetuple())) if self.marked_day else 0
                     raw_date = int(mktime(date(offset.year, offset.month, day).timetuple()))
+                    if raw_current_date == raw_date:
+                        button_text = f"{day}*"
+                    elif raw_marked_day == raw_date:
+                        button_text = f"{day}✓"
+                    else:
+                        button_text = str(day)
                     week_row.append(InlineKeyboardButton(
-                        text=f"•{day}•" if raw_current_date == raw_date else str(day),
+                        text=button_text,
                         callback_data=self._item_callback_data(raw_date),
                     ))
             days.append(week_row)

@@ -25,14 +25,13 @@ def shift_window():
 
 def edit_shift_window():
     return Window(
-        Const("Смена 👇"),
-        Format("Дата: {shift_date} номер: {shift_number} время: {shift_duration} ч"),
+        Format("Смена 👇\nДата: {shift_date} номер: {shift_number} время: {shift_duration} ч"),
         Button(Format("<< {shift_duration} ч >>"),
                id=constants.ShiftDialogId.SHIFT_DURATION_BUTTON,
                on_click=onclick.on_select_shift_duration),
         SwitchTo(Const("<< + >>"),
                  id=constants.ShiftDialogId.NEW_SHIFT,
-                 state=ShiftMenu.new_shift),
+                 state=ShiftMenu.select_new_shift_date),
         state=ShiftMenu.edit_shift,
         getter=getters.get_selected_shift
     )
@@ -40,8 +39,7 @@ def edit_shift_window():
 
 def edit_shift_duration_window():
     return Window(
-        Const("Смена 👇"),
-        Format("Дата: {shift_date} номер: {shift_number} время: {shift_duration} ч"),
+        Format("Смена 👇\nДата: {shift_date} номер: {shift_number} время: {shift_duration} ч"),
         TextInput(id=constants.ShiftDialogId.ENTER_SHIFT_DURATION,
                   type_factory=float,
                   on_success=events.on_success_enter_shift_duration),
@@ -52,12 +50,13 @@ def edit_shift_duration_window():
 
 def new_shift_window(tz: str = "UTC", calendar_locale=(None, None)):
     return Window(
-        Const("Смена 👇"),
-        keyboards.select_shift_number_kbd(),
-        Format("Дата: {shift_date} номер: {shift_number} время: {shift_duration} ч"),
-        Calendar(id='calendar', on_click=onclick.on_date_selected, tz=tz, calendar_locale=calendar_locale),
-        # keyboards.switch_to_shift_list_kbd(onclick.on_cancel_button_click, onclick.on_save_button_click),
-        state=ShiftMenu.new_shift,
+        Format("Текущая смена☞ дата: {shift_date} номер: {shift_number} время: {shift_duration} ч\n"
+               "Выберите дату новой смены👇"),
+        Calendar(id='calendar',
+                 on_click=onclick.on_date_selected,
+                 marked_day=events.mark_shift_day,
+                 tz=tz, calendar_locale=calendar_locale),
+        state=ShiftMenu.select_new_shift_date,
         getter=getters.get_selected_shift
     )
 
@@ -65,9 +64,14 @@ def new_shift_window(tz: str = "UTC", calendar_locale=(None, None)):
 def select_shift_date_window(tz: str = "UTC", calendar_locale=(None, None)):
     return Window(
         Const("Выберите дату"),
-        Calendar(id='calendar', on_click=onclick.on_date_selected, tz=tz, calendar_locale=calendar_locale),
-        Back(Const("<<")),
-        state=ShiftMenu.select_date
+        Calendar(id='calendar',
+                 marked_day=events.mark_shift_day,
+                 on_click=onclick.on_date_selected,
+                 tz=tz,
+                 calendar_locale=calendar_locale),
+        Back(Const("<<"),
+             on_click=onclick.on_click_calendar_back),
+        state=ShiftMenu.select_shift_date
     )
 
 

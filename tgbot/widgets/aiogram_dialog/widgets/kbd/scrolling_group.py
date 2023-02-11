@@ -91,6 +91,7 @@ class ScrollingGroup(Group):
         if int(data) < 0:
             await self.on_enter_page.process_event(
                 c, self.managed(manager), manager)
+            return True
         await self.set_page(c, int(data), manager)
         return True
 

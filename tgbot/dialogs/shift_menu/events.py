@@ -1,5 +1,5 @@
 import datetime
-from typing import Any
+from typing import Any, Optional
 
 from .states import ShiftMenu
 from ...models.erp_shift import upsert_shift_staff, shift_update
@@ -8,6 +8,13 @@ from ...widgets.aiogram_dialog.context.events import ChatEvent, Data
 from ...widgets.aiogram_dialog.widgets.input import TextInput
 from ...widgets.aiogram_dialog.widgets.kbd import ManagedScrollingGroupAdapter
 from ...widgets.aiogram_dialog.widgets.managed import ManagedWidgetAdapter
+
+
+def mark_shift_day(manager: DialogManager) -> Optional[datetime.date]:
+    ctx = manager.current_context()
+    shift_date = (datetime.date.fromisoformat(ctx.dialog_data.get("shift_date"))
+                  if ctx.dialog_data.get("shift_date") else datetime.date.today())
+    return shift_date
 
 
 async def on_process_result_shift_dialog(start_data: Data, result: Any, manager: DialogManager):
@@ -45,7 +52,7 @@ async def on_success_enter_shift_duration(c: ChatEvent, widget: TextInput, manag
                        duration=shift_duration)
     ctx.dialog_data.update(shift_duration=value)
     await manager.switch_to(ShiftMenu.select_shift)
-    await c.delete()
+    # await c.delete()
 
 
 async def on_success_enter_hours_worked(c: ChatEvent, widget: TextInput, manager: DialogManager, value):
