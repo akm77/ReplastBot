@@ -1,4 +1,5 @@
 import datetime
+import logging
 from datetime import date
 from typing import Any
 
@@ -7,11 +8,13 @@ from aiogram.types import CallbackQuery
 from . import constants
 from .states import ShiftMenu
 from ...config import Config
-from ...models.erp_shift import get_shift_row_number_on_date, upsert_shift_staff
+from ...models.erp_shift import get_shift_row_number_on_date, upsert_shift_staff, shift_create
 from ...widgets.aiogram_dialog import DialogManager
 from ...widgets.aiogram_dialog.context.events import ChatEvent
 from ...widgets.aiogram_dialog.widgets.kbd import ManagedScrollingGroupAdapter, Button, Select, ScrollingGroup, \
     Multiselect, Radio
+
+logger = logging.getLogger(__name__)
 
 
 async def on_click_calendar_back(c: CallbackQuery, widget: Button, manager: DialogManager):
@@ -21,16 +24,23 @@ async def on_click_calendar_back(c: CallbackQuery, widget: Button, manager: Dial
 async def on_date_selected(c: CallbackQuery, widget: Any,
                            manager: DialogManager, selected_date: date):
     ctx = manager.current_context()
+    current_state = ctx.state
     session = manager.data.get("session")
-    scrolling_group: ScrollingGroup = manager.dialog().find(constants.ShiftDialogId.SHIFT_LIST)
-    result = (await get_shift_row_number_on_date(session, selected_date)).one_or_none()
-    page = result.row_number - 1 if result else 0
-    await scrolling_group.set_page(c, page, manager)
-    await manager.switch_to(ShiftMenu.select_shift)
+    if current_state == ShiftMenu.select_shift_date:
+        scrolling_group: ScrollingGroup = manager.dialog().find(constants.ShiftDialogId.SHIFT_LIST)
+        try:
+            result = (await get_shift_row_number_on_date(session, selected_date)).fetchall()
+            page = result[0].row_number - 1 if result else 0
+            await scrolling_group.set_page(c, page, manager)
+        except Exception as e:
+            logger.error("Error during write new shift. %r", e)
+        await manager.switch_to(ShiftMenu.select_shift)
+    elif current_state == ShiftMenu.select_new_shift_date:
+        ctx.dialog_data.update(new_shift_date=selected_date.isoformat())
+        await manager.switch_to(ShiftMenu.select_new_shift_number)
 
 
 async def on_click_exit(c: ChatEvent, widget: Button, manager: DialogManager):
-    await manager.done()
     await c.message.delete()
 
 
@@ -102,6 +112,8 @@ async def on_cancel_button_click(c: CallbackQuery, button: Button, manager: Dial
         await employee_ms.reset_checked(event=c, manager=manager)
     elif current_state == ShiftMenu.edit_shift:
         ctx.widget_data.pop(constants.ShiftDialogId.SHIFT_NUMBER_SELECT)
+    elif current_state == ShiftMenu.select_new_shift_number:
+        ctx.widget_data.pop(constants.ShiftDialogId.SHIFT_NUMBER_SELECT)
 
 
 async def on_save_button_click(c: CallbackQuery, button: Button, manager: DialogManager):
@@ -128,3 +140,19 @@ async def on_save_button_click(c: CallbackQuery, button: Button, manager: Dialog
                                  staff_for_delete=staff_for_delete)
     elif current_state == ShiftMenu.edit_shift:
         ctx.widget_data.pop(constants.ShiftDialogId.SHIFT_NUMBER_SELECT)
+    elif current_state == ShiftMenu.select_new_shift_number:
+        shift_date = ctx.dialog_data.get("new_shift_date")
+        shift_number = int(ctx.widget_data.get(constants.ShiftDialogId.SHIFT_NUMBER_SELECT))
+        ctx.widget_data.pop(constants.ShiftDialogId.SHIFT_NUMBER_SELECT)
+        try:
+            new_shift = await shift_create(session,
+                                           date=datetime.date.fromisoformat(shift_date),
+                                           number=shift_number,
+                                           duration=config.misc.shift_duration)
+            scrolling_group: ScrollingGroup = manager.dialog().find(constants.ShiftDialogId.SHIFT_LIST)
+            result = (await get_shift_row_number_on_date(session, new_shift.date)).fetchall()
+            page = result[shift_number - 1].row_number - 1 if result else 0
+            await scrolling_group.set_page(c, page, manager)
+        except Exception as e:
+            logger.error("Error during write new shift. %r", e)
+

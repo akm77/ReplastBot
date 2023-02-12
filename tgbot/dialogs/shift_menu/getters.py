@@ -56,10 +56,6 @@ async def get_shift_list(dialog_manager: DialogManager, **middleware_data):
     shift = await shift_read(session,
                              date=datetime.date.fromisoformat(shift_date),
                              number=int(shift_number))
-    db_day_shift_numbers = await select_day_shift_numbers(session,
-                                                          date=datetime.date.fromisoformat(shift_date))
-    day_shift_numbers = [shift.number for shift in db_day_shift_numbers]
-    ctx.dialog_data.update(day_shift_numbers=day_shift_numbers)
     shift_staff = []
     shift_activity = []
     shift_material = []
@@ -85,18 +81,37 @@ async def get_selected_shift(dialog_manager: DialogManager, **middleware_data):
     shift_date = datetime.date.fromisoformat(ctx.dialog_data.get("shift_date"))
     shift_number = ctx.dialog_data.get("shift_number")
     shift_duration = float(ctx.dialog_data.get("shift_duration"))
-    day_shift_numbers = ctx.dialog_data.get("day_shift_numbers")
-    shift_numbers = [(int(shift_number), int(shift_number)) for shift_number in day_shift_numbers]
-    radio: Radio = dialog_manager.dialog().find(constants.ShiftDialogId.SHIFT_NUMBER_SELECT)
-    # d = radio.get_checked(dialog_manager)
-    # if not radio.get_checked(dialog_manager):
-    #     await radio.set_checked(event=dialog_manager.event,
-    #                             item_id=shift_number,
-    #                             manager=dialog_manager)
     return {"shift_date": shift_date,
             "shift_number": shift_number,
-            "shift_duration": shift_duration,
-            "shift_numbers": shift_numbers}
+            "shift_duration": shift_duration
+            }
+
+
+async def get_new_shift(dialog_manager: DialogManager, **middleware_data):
+    session = middleware_data.get('session')
+    ctx = dialog_manager.current_context()
+
+    shift_date = datetime.date.fromisoformat(ctx.dialog_data.get("shift_date"))
+    shift_number = ctx.dialog_data.get("shift_number")
+    shift_duration = float(ctx.dialog_data.get("shift_duration"))
+    new_shift_date = datetime.date.fromisoformat(ctx.dialog_data.get("new_shift_date")
+                                                 ) if ctx.dialog_data.get("new_shift_date") else datetime.date.today()
+
+    db_day_shift_numbers = await select_day_shift_numbers(session, date=new_shift_date)
+    day_shift_numbers = {1, 2, 3} - {shift.number for shift in db_day_shift_numbers}
+    shift_numbers = sorted([(n, n) for n in day_shift_numbers])
+    radio: Radio = dialog_manager.dialog().find(constants.ShiftDialogId.SHIFT_NUMBER_SELECT)
+    if not radio.get_checked(dialog_manager):
+        await radio.set_checked(event=dialog_manager.event,
+                                item_id=str(shift_numbers[0][1]) if len(shift_numbers) else "1",
+                                manager=dialog_manager)
+
+    return {"shift_date": shift_date,
+            "new_shift_date": new_shift_date,
+            "shift_number": shift_number,
+            "shift_numbers": shift_numbers,
+            "shift_duration": shift_duration
+            }
 
 
 async def get_employee_list(dialog_manager: DialogManager, **middleware_data):

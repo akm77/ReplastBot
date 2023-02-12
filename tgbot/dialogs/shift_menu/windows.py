@@ -48,7 +48,7 @@ def edit_shift_duration_window():
     )
 
 
-def new_shift_window(tz: str = "UTC", calendar_locale=(None, None)):
+def new_shift_date_window(tz: str = "UTC", calendar_locale=(None, None)):
     return Window(
         Format("Текущая смена☞ дата: {shift_date} номер: {shift_number} время: {shift_duration} ч\n"
                "Выберите дату новой смены👇"),
@@ -58,6 +58,18 @@ def new_shift_window(tz: str = "UTC", calendar_locale=(None, None)):
                  tz=tz, calendar_locale=calendar_locale),
         state=ShiftMenu.select_new_shift_date,
         getter=getters.get_selected_shift
+    )
+
+
+def new_shift_number_window(tz: str = "UTC", calendar_locale=(None, None)):
+    return Window(
+        Format("Текущая смена☞ дата: {shift_date} номер: {shift_number} время: {shift_duration} ч\n"
+               "Дата новой смены: {new_shift_date}\n"
+               "Выбрать номер смены👇"),
+        keyboards.select_shift_number_kbd(),
+        keyboards.switch_to_shift_list_kbd(onclick.on_cancel_button_click, onclick.on_save_button_click),
+        state=ShiftMenu.select_new_shift_number,
+        getter=getters.get_new_shift
     )
 
 

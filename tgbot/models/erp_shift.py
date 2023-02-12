@@ -122,21 +122,6 @@ async def shift_create(Session: sessionmaker, **kwargs) -> Optional[ERPShift]:
         statement = insert(ERPShift).values(**values)
         result = await session.execute(statement)
         shift_date, shift_number = result.inserted_primary_key
-        if kwargs.get('staff_list', None) is not None:
-            staff_list = kwargs['staff_list']
-            values = [{"shift_date": shift_date,
-                       "shift_number": shift_number,
-                       "employee_id": int(employee_id),
-                       "hours_worked": int(staff_list[employee_id]["hour"])} for employee_id in staff_list]
-            statement = insert(ERPShiftStaff).values(values)
-            await session.execute(statement)
-        if kwargs.get('activity_list', None) is not None:
-            activity_list = kwargs['activity_list']
-            values = [{"shift_date": shift_date,
-                       "shift_number": shift_number,
-                       "activity_id": activity} for activity in activity_list]
-            statement = insert(ERPShiftActivity).values(values)
-            await session.execute(statement)
         await session.commit()
         result = await shift_read(Session, date=shift_date, number=shift_number)
     return result

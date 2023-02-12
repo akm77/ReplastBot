@@ -105,8 +105,8 @@ def switch_to_shift_list_kbd(on_cancel_button_click, on_save_button_click):
 
 def select_shift_number_kbd(on_click=None, on_state_changed=None):
     return Row(Radio(
-        Format("☑︎ ︎{item[0]}"),
-        Format("︎☐ {item[0]}"),
+        Format("✓ ︎{item[0]}"),
+        Format("︎{item[0]}"),
         id=constants.ShiftDialogId.SHIFT_NUMBER_SELECT,
         item_id_getter=operator.itemgetter(1),
         items="shift_numbers",
