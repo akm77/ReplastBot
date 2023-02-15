@@ -21,24 +21,35 @@ class ShiftDialogId(str, Enum):
     SHIFT_DIALOG_EXIT = "sdi_exit"
     SHIFT_LIST = "sdi00"
     SHIFT_SELECT = "sdi01"
-    SHIFT_STAFF = "sdi02"
-    SHIFT_STAFF_COLUMN = "sdi03"
-    SHIFT_ACTIVITY = "sdi04"
-    SHIFT_ACTIVITY_COLUMN = "sdi05"
-    SHIFT_MATERIAL = "sdi06"
-    SHIFT_MATERIAL_COLUMN = "sdi07"
-    SHIFT_PRODUCT = "sdi08"
-    SHIFT_PRODUCT_COLUMN = "sdi09"
-    SELECT_SHIFT_STAFF = "sdi10"
-    SWITCH_TO_SHIFT_LIST = "sdi11"
-    DONT_SAVE_AND_SWITCH_TO_SHIFT_LIST = "sdi12"
-    SAVE_AND_SWITCH_TO_SHIFT_LIST = "sdi13"
-    STAFF_LIST = "sdi14"
-    ENTER_WORKED_HOURS = "sdi15"
-    SHIFT_DURATION_BUTTON = "sdi16"
-    NEW_SHIFT = "sdi17"
-    SHIFT_NUMBER_SELECT = "sdi18"
-    ENTER_SHIFT_DURATION = "sdi19"
+    SHIFT_DURATION_BUTTON = "sdi02"
+    ENTER_SHIFT_DURATION = "sdi03"
+    SHIFT_NEW_SHIFT = "sdi04"
+    SHIFT_NUMBER_SELECT = "sdi05"
+    SHIFT_STAFF = "sdi06"
+    SHIFT_STAFF_COLUMN = "sdi07"
+    ENTER_WORKED_HOURS = "sdi08"
+    SHIFT_ACTIVITY = "sdi09"
+    SHIFT_ACTIVITY_COLUMN = "sdi10"
+    ENTER_ACTIVITY_COMMENT = "sdi11"
+    SHIFT_MATERIAL = "sdi12"
+    SHIFT_MATERIAL_COLUMN = "sdi13"
+    SHIFT_PRODUCT = "sdi14"
+    SHIFT_PRODUCT_COLUMN = "sdi15"
+    SWITCH_TO_SHIFT_LIST = "sdi16"
+    DONT_SAVE_AND_SWITCH_TO_SHIFT_LIST = "sdi17"
+    SAVE_AND_SWITCH_TO_SHIFT_LIST = "sdi18"
+    SELECT_FROM_DCT = "sdi19"
+    DCT_LIST = "sdi20"
+
+    def __str__(self) -> str:
+        return str.__str__(self)
+
+
+class SelectDictionary(str, Enum):
+    Employee = "dct01"
+    Activity = "dct02"
+    Product = "dct03"
+    Material = "dct04"
 
     def __str__(self) -> str:
         return str.__str__(self)

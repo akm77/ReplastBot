@@ -13,7 +13,6 @@ from tgbot.handlers.admin import register_admin
 from tgbot.handlers.dict_setup import register_dict_setup
 from tgbot.handlers.echo import register_echo
 from tgbot.handlers.google_sheets_commands import register_sheet_commands
-from tgbot.handlers.shift_processing import register_shift
 from tgbot.handlers.user import register_user
 from tgbot.middlewares.environment import EnvironmentMiddleware
 from tgbot.models.base import create_db_session
@@ -33,7 +32,6 @@ def register_all_handlers(dp):
     register_admin(dp)
     register_user(dp)
     register_dict_setup(dp)
-    # register_shift(dp)
     register_sheet_commands(dp)
     register_echo(dp)
 

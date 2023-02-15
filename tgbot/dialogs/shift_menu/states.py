@@ -8,7 +8,8 @@ class ShiftMenu(StatesGroup):
     select_new_shift_number = State()
     edit_shift = State()
     edit_shift_duration = State()
-    select_staff = State()
     enter_hours_worked = State()
+    enter_activity_comment = State()
+    multi_select_from_dct = State()
 
 

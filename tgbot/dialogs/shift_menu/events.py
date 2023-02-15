@@ -2,7 +2,7 @@ import datetime
 from typing import Any, Optional
 
 from .states import ShiftMenu
-from ...models.erp_shift import upsert_shift_staff, shift_update
+from ...models.erp_shift import upsert_shift_staff, shift_update, set_shift_activity_comment
 from ...widgets.aiogram_dialog import DialogManager
 from ...widgets.aiogram_dialog.context.events import ChatEvent, Data
 from ...widgets.aiogram_dialog.widgets.input import TextInput
@@ -74,4 +74,23 @@ async def on_success_enter_hours_worked(c: ChatEvent, widget: TextInput, manager
 
 
 async def on_error_enter_hours_worked(c: ChatEvent, widget: TextInput, manager: DialogManager):
+    pass
+
+
+async def on_success_enter_activity_comment(c: ChatEvent, widget: TextInput, manager: DialogManager, value):
+    ctx = manager.current_context()
+    session = manager.data.get("session")
+    shift_date = datetime.date.fromisoformat(ctx.dialog_data.get("shift_date"))
+    shift_number = int(ctx.dialog_data.get("shift_number"))
+    line_number = int(ctx.dialog_data.get("activity_line_number"))
+    await set_shift_activity_comment(session,
+                                     shift_date=shift_date,
+                                     shift_number=shift_number,
+                                     line_number=line_number,
+                                     comment=value)
+    await manager.switch_to(ShiftMenu.select_shift)
+    await c.delete()
+
+
+async def on_error_enter_activity_comment(c: ChatEvent, widget: TextInput, manager: DialogManager):
     pass

@@ -8,7 +8,7 @@ from aiogram.types import CallbackQuery
 from . import constants
 from .states import ShiftMenu
 from ...config import Config
-from ...models.erp_shift import get_shift_row_number_on_date, upsert_shift_staff, shift_create
+from ...models.erp_shift import get_shift_row_number_on_date, upsert_shift_staff, shift_create, update_shift_activities
 from ...widgets.aiogram_dialog import DialogManager
 from ...widgets.aiogram_dialog.context.events import ChatEvent
 from ...widgets.aiogram_dialog.widgets.kbd import ManagedScrollingGroupAdapter, Button, Select, ScrollingGroup, \
@@ -65,55 +65,67 @@ async def on_delete_shift(c: CallbackQuery, widget: Any, manager: DialogManager,
     pass
 
 
-async def on_select_staff_member(c: CallbackQuery, widget: Select, manager: DialogManager,
-                                 employee_id: str):
+async def on_select_shift_object(c: CallbackQuery, widget: Select, manager: DialogManager,
+                                 complex_item_id: str):
     ctx = manager.current_context()
-    if int(employee_id) < 0:
-        await manager.switch_to(ShiftMenu.select_staff)
-        return
-    else:
-        ctx.dialog_data.update(employee_id=employee_id)
+    item_id, dictionary = complex_item_id.split("_")
+    ctx.dialog_data.update(dictionary=dictionary)
+    if item_id == "-1":
+        await manager.switch_to(ShiftMenu.multi_select_from_dct)
+    elif dictionary == constants.SelectDictionary.Employee:
+        ctx.dialog_data.update(employee_id=item_id)
         await manager.switch_to(ShiftMenu.enter_hours_worked)
+    elif dictionary == constants.SelectDictionary.Activity:
+        ctx.dialog_data.update(activity_line_number=item_id)
+        await manager.switch_to(ShiftMenu.enter_activity_comment)
 
 
-async def on_select_activity(c: CallbackQuery, widget: Any, manager: DialogManager,
-                             activity_id):
+async def on_select_shift_activity(c: CallbackQuery, widget: Any, manager: DialogManager,
+                                   line_number):
     pass
 
 
-async def on_select_material(c: CallbackQuery, widget: Any, manager: DialogManager,
-                             material_id):
+async def on_select_shift_material(c: CallbackQuery, widget: Any, manager: DialogManager,
+                                   material_id):
     ctx = manager.current_context()
     pass
 
 
-async def on_select_product(c: CallbackQuery, widget: Any, manager: DialogManager,
-                            product_id):
+async def on_select_shift_product(c: CallbackQuery, widget: Any, manager: DialogManager,
+                                  product_id):
     pass
 
 
-async def on_select_employee(c: CallbackQuery, select: Multiselect,
+async def on_multi_select_dct_item(c: CallbackQuery, select: Multiselect,
+                                   manager: DialogManager, item_id: str):
+    ctx = manager.current_context()
+    current_items_id = list(map(str, ctx.widget_data.get("current_items_id")))
+    if select.is_checked(item_id, manager) and item_id in current_items_id:
+        current_items_id.remove(item_id)
+        ctx.widget_data.update(current_items_id=current_items_id)
+
+
+async def on_select_material(c: CallbackQuery, select: Multiselect,
                              manager: DialogManager, item_id: str):
-    ctx = manager.current_context()
-    current_shift_staff = list(map(str, ctx.widget_data.get("current_shift_staff")))
-    if select.is_checked(item_id, manager) and item_id in current_shift_staff:
-        current_shift_staff.remove(item_id)
-        ctx.widget_data.update(current_shift_staff=current_shift_staff)
+    pass
+
+
+async def on_select_product(c: CallbackQuery, select: Multiselect,
+                            manager: DialogManager, item_id: str):
     pass
 
 
 async def on_cancel_button_click(c: CallbackQuery, button: Button, manager: DialogManager):
     ctx = manager.current_context()
     current_state = ctx.state
-    if current_state == ShiftMenu.select_staff:
-        employee_ms: Multiselect = manager.dialog().find(constants.ShiftDialogId.SELECT_SHIFT_STAFF)
-        if ctx.widget_data.get("current_shift_staff"):
-            ctx.widget_data.pop("current_shift_staff")
-        await employee_ms.reset_checked(event=c, manager=manager)
-    elif current_state == ShiftMenu.edit_shift:
+    if current_state == ShiftMenu.edit_shift:
         ctx.widget_data.pop(constants.ShiftDialogId.SHIFT_NUMBER_SELECT)
     elif current_state == ShiftMenu.select_new_shift_number:
         ctx.widget_data.pop(constants.ShiftDialogId.SHIFT_NUMBER_SELECT)
+    elif current_state == ShiftMenu.multi_select_from_dct:
+        ctx.widget_data.pop("start_items_id")
+        ctx.widget_data.pop("current_items_id")
+        ctx.widget_data.pop(constants.ShiftDialogId.SELECT_FROM_DCT)
 
 
 async def on_save_button_click(c: CallbackQuery, button: Button, manager: DialogManager):
@@ -123,21 +135,29 @@ async def on_save_button_click(c: CallbackQuery, button: Button, manager: Dialog
     shift_number = ctx.dialog_data.get("shift_number")
     session = manager.data.get("session")
     config: Config = manager.data.get("config")
-    if current_state == ShiftMenu.select_staff:
-        employee_ms: Multiselect = manager.dialog().find(constants.ShiftDialogId.SELECT_SHIFT_STAFF)
-        start_shift_staff = set(map(int, ctx.widget_data.get("start_shift_staff")))
-        result_shift_staff = set(map(int, ctx.widget_data.get(constants.ShiftDialogId.SELECT_SHIFT_STAFF)))
-        staff_for_add = result_shift_staff - start_shift_staff
-        staff_for_delete = start_shift_staff - result_shift_staff
-        if ctx.widget_data.get("current_shift_staff"):
-            ctx.widget_data.pop("current_shift_staff")
-        await employee_ms.reset_checked(event=c, manager=manager)
-        await upsert_shift_staff(session,
-                                 shift_date=datetime.date.fromisoformat(shift_date),
-                                 shift_number=shift_number,
-                                 hours_worked=config.misc.shift_duration,
-                                 staff_for_add=staff_for_add,
-                                 staff_for_delete=staff_for_delete)
+    if current_state == ShiftMenu.multi_select_from_dct:
+        dictionary = ctx.dialog_data.get("dictionary")
+        ms: Multiselect = manager.dialog().find(constants.ShiftDialogId.SELECT_FROM_DCT)
+        start_items_id = set(map(int, ctx.widget_data.get("start_items_id")))
+        result_items_id = set(map(int, ctx.widget_data.get(constants.ShiftDialogId.SELECT_FROM_DCT)))
+        items_for_add = result_items_id - start_items_id
+        items_for_delete = start_items_id - result_items_id
+        ctx.widget_data.pop("start_items_id")
+        ctx.widget_data.pop("current_items_id")
+        await ms.reset_checked(event=c, manager=manager)
+        if dictionary == constants.SelectDictionary.Employee:
+            await upsert_shift_staff(session,
+                                     shift_date=datetime.date.fromisoformat(shift_date),
+                                     shift_number=shift_number,
+                                     hours_worked=config.misc.shift_duration,
+                                     staff_for_add=items_for_add,
+                                     staff_for_delete=items_for_delete)
+        elif dictionary == constants.SelectDictionary.Activity:
+            await update_shift_activities(session,
+                                          shift_date=datetime.date.fromisoformat(shift_date),
+                                          shift_number=shift_number,
+                                          items_for_add=sorted(list(items_for_add)),
+                                          items_for_delete=list(items_for_delete))
     elif current_state == ShiftMenu.edit_shift:
         ctx.widget_data.pop(constants.ShiftDialogId.SHIFT_NUMBER_SELECT)
     elif current_state == ShiftMenu.select_new_shift_number:
@@ -155,4 +175,3 @@ async def on_save_button_click(c: CallbackQuery, button: Button, manager: Dialog
             await scrolling_group.set_page(c, page, manager)
         except Exception as e:
             logger.error("Error during write new shift. %r", e)
-

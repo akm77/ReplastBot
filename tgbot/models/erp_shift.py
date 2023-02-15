@@ -171,27 +171,6 @@ async def shift_list_full(Session: sessionmaker, **kwargs) -> Optional[List[ERPS
     return result.scalars().all()
 
 
-async def shift_navigator(Session: sessionmaker, direction: str = 'prev', **kwargs) -> Optional[List[ERPShift]]:
-    if not (kwargs.get('date') or kwargs.get('number')):
-        return
-    shift_date = kwargs['date']
-    shift_number = kwargs['number']
-    statement = select(ERPShift)
-    if direction == "prev":
-        statement = statement.where(tuple_(ERPShift.date, ERPShift.number) <
-                                    tuple_(shift_date, shift_number))
-        statement = statement.order_by(desc(ERPShift.date), desc(ERPShift.number))
-    if direction == "next":
-        statement = statement.where(tuple_(ERPShift.date, ERPShift.number) >
-                                    tuple_(shift_date, shift_number))
-        statement = statement.order_by(ERPShift.date, ERPShift.number)
-    if kwargs.get('limit', None):
-        statement = statement.limit(kwargs['limit'])
-    async with Session() as session:
-        result = await session.execute(statement)
-    return result.scalars().all()
-
-
 async def get_shift_row_number_on_date(Session: sessionmaker, shift_date: datetime.date) -> Optional[Result]:
     # WITH max_date AS (select MAX(date) as shift_date
     #                   FROM erp_shift
@@ -225,8 +204,6 @@ async def shift_read(Session: sessionmaker, **kwargs) -> Optional[ERPShift]:
                                              ).joinedload(
         ERPShiftActivity.activity).joinedload(
         ERPActivity.shift_activity))
-    # statement = statement.options(joinedload(ERPShiftActivity.activity,
-    #                                          innerjoin=False).joinedload(ERPActivity))
     statement = statement.options(joinedload(ERPShift.shift_materials
                                              ).joinedload(
         ERPShiftMaterial.material).joinedload(
@@ -697,7 +674,76 @@ async def shift_staff_list(Session: sessionmaker, **kwargs) -> Optional[List[ERP
     return result.scalars().all()
 
 
-async def shift_activity_list(Session: sessionmaker) -> Optional[Result]:
+async def update_shift_activities(Session: sessionmaker,
+                                  shift_date: datetime.date,
+                                  shift_number: int,
+                                  items_for_add: list,
+                                  items_for_delete: list):
+    if not (len(items_for_add) or len(items_for_delete)):
+        return
+
+    async with Session() as session:
+        if len(items_for_delete):
+            delete_statement = delete(ERPShiftActivity).where(ERPShiftActivity.shift_date == shift_date,
+                                                              ERPShiftActivity.shift_number == shift_number,
+                                                              ERPShiftActivity.activity_id.in_(items_for_delete))
+            await session.execute(delete_statement)
+
+        select_numbering_rows = select(
+            func.row_number().over(order_by=ERPShiftActivity.line_number).label("row_number"),
+            ERPShiftActivity.line_number,
+            ERPShiftActivity.activity_id).where(ERPShiftActivity.shift_date == shift_date,
+                                                ERPShiftActivity.shift_number == shift_number)
+        result: Result = await session.execute(select_numbering_rows)
+        lines = result.fetchall()
+        for line in lines:
+            if line.row_number == line.line_number:
+                continue
+            update_statement = update(ERPShiftActivity).where(ERPShiftActivity.shift_date == shift_date,
+                                                              ERPShiftActivity.shift_number == shift_number,
+                                                              ERPShiftActivity.line_number == line.line_number
+                                                              ).values({"line_number": line.row_number})
+            await session.execute(update_statement)
+
+        if len(items_for_add):
+            values = [{"shift_date": shift_date,
+                       "shift_number": shift_number,
+                       "line_number": line_number,
+                       "activity_id": activity_id}
+                      for line_number, activity_id in enumerate(items_for_add, start=len(lines) + 1)]
+            insert_statement = insert(ERPShiftActivity).values(values)
+            await session.execute(insert_statement)
+        await session.commit()
+
+
+async def set_shift_activity_comment(Session: sessionmaker,
+                                     shift_date: datetime.date,
+                                     shift_number: int,
+                                     line_number: int,
+                                     comment: str):
+    async with Session() as session:
+        update_statement = update(ERPShiftActivity).where(ERPShiftActivity.shift_date == shift_date,
+                                                          ERPShiftActivity.shift_number == shift_number,
+                                                          ERPShiftActivity.line_number == line_number
+                                                          ).values({"comment": comment})
+        await session.execute(update_statement)
+        await session.commit()
+
+
+async def read_shift_activity(Session: sessionmaker,
+                              shift_date: datetime.date,
+                              shift_number: int,
+                              line_number: int) -> Optional[ERPShiftActivity]:
+    async with Session() as session:
+        select_statement = select(ERPShiftActivity).where(ERPShiftActivity.shift_date == shift_date,
+                                                          ERPShiftActivity.shift_number == shift_number,
+                                                          ERPShiftActivity.line_number == line_number)
+        select_statement = select_statement.options(joinedload(ERPShiftActivity.activity))
+        result = await session.execute(select_statement)
+        return result.scalar()
+
+
+async def shift_day_activity_list(Session: sessionmaker) -> Optional[Result]:
     # SELECT esa.shift_date, ea.name, COUNT() AS 'Кол-во'
     # FROM erp_shift_activity esa
     # JOIN erp_activity ea ON esa.activity_id = ea.id

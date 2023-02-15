@@ -10,10 +10,10 @@ def shift_window():
     return Window(
         Const("Смены по датам"),
         keyboards.shift_list_kbd(onclick.on_select_shift, events.on_shift_list_page_changed, onclick.on_enter_page),
-        keyboards.shift_staff_kbd(onclick.on_select_staff_member),
-        keyboards.shift_activity_kbd(onclick.on_select_activity),
-        keyboards.shift_product_kbd(onclick.on_select_product),
-        keyboards.shift_material_kbd(onclick.on_select_material),
+        keyboards.shift_staff_kbd(onclick.on_select_shift_object),
+        keyboards.shift_activity_kbd(onclick.on_select_shift_object),
+        keyboards.shift_product_kbd(onclick.on_select_shift_product),
+        keyboards.shift_material_kbd(onclick.on_select_shift_material),
         Cancel(Const("<<"),
                id=constants.ShiftDialogId.SHIFT_DIALOG_EXIT,
                on_click=onclick.on_click_exit,
@@ -30,7 +30,7 @@ def edit_shift_window():
                id=constants.ShiftDialogId.SHIFT_DURATION_BUTTON,
                on_click=onclick.on_select_shift_duration),
         SwitchTo(Const("<< + >>"),
-                 id=constants.ShiftDialogId.NEW_SHIFT,
+                 id=constants.ShiftDialogId.SHIFT_NEW_SHIFT,
                  state=ShiftMenu.select_new_shift_date),
         state=ShiftMenu.edit_shift,
         getter=getters.get_selected_shift
@@ -87,13 +87,13 @@ def select_shift_date_window(tz: str = "UTC", calendar_locale=(None, None)):
     )
 
 
-def select_staff_window():
+def multi_select_from_dct_window():
     return Window(
-        Const("Выберите сотрудников"),
-        keyboards.select_staff_kbd(onclick.on_select_employee, events.on_employee_state_changed, None, None),
+        Const("Выберите из списка"),
+        keyboards.select_from_dct_kbd(on_click=onclick.on_multi_select_dct_item),
         keyboards.switch_to_shift_list_kbd(onclick.on_cancel_button_click, onclick.on_save_button_click),
-        state=ShiftMenu.select_staff,
-        getter=getters.get_employee_list
+        state=ShiftMenu.multi_select_from_dct,
+        getter=getters.multi_select_from_dct
     )
 
 
@@ -108,4 +108,18 @@ def update_staff_member_window():
                   on_error=events.on_error_enter_hours_worked),
         state=ShiftMenu.enter_hours_worked,
         getter=getters.get_staff_employee
+    )
+
+
+def update_activity_comment():
+    return Window(
+        Format("Текущая смена☞ дата: {shift_date} номер: {shift_number} время: {shift_duration} ч\n"
+               "Работа - {activity_name}.\n"
+               "👇Комментарий: {activity_comment}.👇"),
+        TextInput(id=constants.ShiftDialogId.ENTER_ACTIVITY_COMMENT,
+                  type_factory=str,
+                  on_success=events.on_success_enter_activity_comment,
+                  on_error=events.on_error_enter_activity_comment),
+        state=ShiftMenu.enter_activity_comment,
+        getter=getters.get_shift_activity
     )

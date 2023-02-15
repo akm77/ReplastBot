@@ -1,28 +1,33 @@
 import datetime
+import logging
 from typing import Optional, List
 
 from . import constants
-from .constants import ShiftDialogId
-from ...models.erp_dict import ERPEmployee, dct_list
-from ...models.erp_shift import ERPShift, shift_list_full, shift_read, get_shift_staff_member, select_day_shift_numbers
+from ...models.erp_dict import ERPEmployee, dct_list, ERPActivity
+from ...models.erp_shift import ERPShift, shift_list_full, shift_read, get_shift_staff_member, select_day_shift_numbers, \
+    read_shift_activity
 from ...widgets.aiogram_dialog import DialogManager
 from ...widgets.aiogram_dialog.widgets.kbd import Multiselect, Radio
 
+logger = logging.getLogger(__name__)
+
 
 def get_shift_staff_list(shift: ERPShift) -> Optional[List]:
-    staff_button = [("<- ПЕРСОНАЛ ->", -1)]
-    return staff_button + [(f"{employee.employee.name} - {employee.hours_worked} ч", employee.employee_id)
+    staff_button = [("<- ПЕРСОНАЛ ->", f"-1_{constants.SelectDictionary.Employee}")]
+    return staff_button + [(f"{employee.employee.name} - {employee.hours_worked} ч",
+                            f"{employee.employee_id}_{constants.SelectDictionary.Employee}")
                            for employee in shift.shift_staff]
 
 
 def get_shift_activity_list(shift: ERPShift) -> Optional[List]:
-    activity_button = [("<- РАБОТЫ ->", -1)]
-    return activity_button + [(f"{activity.activity.name}", activity.activity_id)
+    activity_button = [("<- РАБОТЫ ->", f"-1_{constants.SelectDictionary.Activity}")]
+    return activity_button + [(f"{activity.activity.name} {'(' + activity.comment + ')' if activity.comment else ''}",
+                               f"{activity.line_number}_{constants.SelectDictionary.Activity}")
                               for activity in shift.shift_activities]
 
 
 def get_shift_material_list(shift: ERPShift) -> Optional[List]:
-    material_button = [("<- СЫРЬЁ ->", "-1_-1")]
+    material_button = [("<- СЫРЬЁ ->", str(constants.SelectDictionary.Activity))]
     return material_button + [(f"#{material.line_number} {material.material.name} - "
                                f"{material.quantity} {material.material.uom_code} "
                                f"{'✅' if material.is_processed else '‼️'}",
@@ -32,7 +37,7 @@ def get_shift_material_list(shift: ERPShift) -> Optional[List]:
 
 def get_shift_product_list(shift: ERPShift) -> Optional[List]:
     state = {'ok': '✅', 'todo': '‼️', 'back': '📛'}
-    product_button = [("<- ПРОДУКЦИЯ ->", "-1_-1")]
+    product_button = [("<- ПРОДУКЦИЯ ->", str(constants.SelectDictionary.Product))]
     return product_button + [(f"#{product.id} {product.product.name} - "
                               f"{product.quantity} {product.product.uom_code} "
                               f"{state[product.state]}",
@@ -114,44 +119,86 @@ async def get_new_shift(dialog_manager: DialogManager, **middleware_data):
             }
 
 
-async def get_employee_list(dialog_manager: DialogManager, **middleware_data):
-    ctx = dialog_manager.current_context()
-    shift_date = ctx.dialog_data.get("shift_date")
-    shift_number = ctx.dialog_data.get("shift_number")
-    employee_ms: Multiselect = dialog_manager.dialog().find(ShiftDialogId.SELECT_SHIFT_STAFF)
-    session = middleware_data.get('session')
-    db_employee_list = await dct_list(Session=session, table_class=ERPEmployee)
-    shift = await shift_read(session,
-                             date=datetime.date.fromisoformat(shift_date),
-                             number=int(shift_number))
-    start_shift_staff = [str(employee.employee_id) for employee in shift.shift_staff]
-    current_shift_staff = c if (c := ctx.widget_data.get("current_shift_staff")) is not None else start_shift_staff
-    ctx.widget_data.update(start_shift_staff=start_shift_staff)
-    ctx.widget_data.update(current_shift_staff=current_shift_staff)
-    employee = [(employee.name, employee.id) for employee in db_employee_list]
-    _ = [(await employee_ms.set_checked(event=dialog_manager.event,
-                                        item_id=str(e[1]),
-                                        checked=True,
-                                        manager=dialog_manager)) for e in employee
-         if str(e[1]) in current_shift_staff]
-    return {"employee": employee}
-
-
 async def get_staff_employee(dialog_manager: DialogManager, **middleware_data):
     session = middleware_data.get('session')
     ctx = dialog_manager.current_context()
     shift_date = ctx.dialog_data.get("shift_date")
     shift_number = ctx.dialog_data.get("shift_number")
     employee_id = ctx.dialog_data.get("employee_id")
-    employee = await get_shift_staff_member(Session=session,
-                                            shift_date=datetime.date.fromisoformat(shift_date),
-                                            shift_number=int(shift_number),
-                                            employee_id=int(employee_id))
-    employee_name = employee.employee.name
-    employee_shift_date = employee.shift_date.strftime("%d.%m.%Y")
-    employee_shift_number = employee.shift_number
-    employee_hours_worked = employee.hours_worked
+    try:
+        employee = await get_shift_staff_member(Session=session,
+                                                shift_date=datetime.date.fromisoformat(shift_date),
+                                                shift_number=int(shift_number),
+                                                employee_id=int(employee_id))
+        employee_name = employee.employee.name
+        employee_shift_date = employee.shift_date.strftime("%d.%m.%Y")
+        employee_shift_number = employee.shift_number
+        employee_hours_worked = employee.hours_worked
+    except Exception as e:
+        logger.info("Error querying shift staff. Date %s, number %s. %r", shift_date, shift_number, e)
+        await dialog_manager.done()
+        return
+
     return {"employee_name": employee_name,
             "employee_shift_date": employee_shift_date,
             "employee_shift_number": employee_shift_number,
             "employee_hours_worked": employee_hours_worked}
+
+
+async def multi_select_from_dct(dialog_manager: DialogManager, **middleware_data):
+    ctx = dialog_manager.current_context()
+    shift_date = ctx.dialog_data.get("shift_date")
+    shift_number = ctx.dialog_data.get("shift_number")
+    dictionary = ctx.dialog_data.get("dictionary")
+    session = middleware_data.get('session')
+    ms: Multiselect = dialog_manager.dialog().find(constants.ShiftDialogId.SELECT_FROM_DCT)
+
+    try:
+        shift = await shift_read(session,
+                                 date=datetime.date.fromisoformat(shift_date),
+                                 number=int(shift_number))
+    except Exception as e:
+        logger.info("Error querying shift. Date %s, number %s. %r", shift_date, shift_number, e)
+        await dialog_manager.done()
+        return
+
+    db_dct_list = []
+    start_items_id = []
+    if dictionary == constants.SelectDictionary.Employee:
+        start_items_id = [str(employee.employee_id) for employee in shift.shift_staff]
+        db_dct_list = await dct_list(Session=session, table_class=ERPEmployee)
+    elif dictionary == constants.SelectDictionary.Activity:
+        start_items_id = [str(activity.activity_id) for activity in shift.shift_activities]
+        db_dct_list = await dct_list(Session=session, table_class=ERPActivity)
+
+    current_items_id = c if (c := ctx.widget_data.get("current_items_id")
+                             ) is not None else start_items_id
+    ctx.widget_data.update(start_items_id=start_items_id)
+    ctx.widget_data.update(current_items_id=current_items_id)
+
+    items = [(item.name, item.id) for item in db_dct_list]
+    _ = [(await ms.set_checked(event=dialog_manager.event,
+                               item_id=str(item[1]),
+                               checked=True,
+                               manager=dialog_manager)) for item in items
+         if str(item[1]) in current_items_id]
+
+    return {"items": items}
+
+
+async def get_shift_activity(dialog_manager: DialogManager, **middleware_data):
+    session = middleware_data.get('session')
+    ctx = dialog_manager.current_context()
+    shift_date = ctx.dialog_data.get("shift_date")
+    shift_number = int(ctx.dialog_data.get("shift_number"))
+    shift_duration = float(ctx.dialog_data.get("shift_duration"))
+    line_number = int(ctx.dialog_data.get("activity_line_number"))
+    activity = await read_shift_activity(Session=session,
+                                         shift_date=datetime.date.fromisoformat(shift_date),
+                                         shift_number=shift_number,
+                                         line_number=line_number)
+    return {"shift_date": shift_date,
+            "shift_number": shift_number,
+            "shift_duration": shift_duration,
+            "activity_name": activity.activity.name,
+            "activity_comment": activity.comment if activity.comment else ""}

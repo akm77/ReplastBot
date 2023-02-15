@@ -9,7 +9,7 @@ from aiogram.utils.markdown import text
 from gspread_asyncio import AsyncioGspreadClientManager
 
 from tgbot.config import Config
-from tgbot.models.erp_shift import shift_activity_list, shift_bags_list, shift_material_intake_list, staff_time_sheet
+from tgbot.models.erp_shift import shift_day_activity_list, shift_bags_list, shift_material_intake_list, staff_time_sheet
 from tgbot.services.google_sheets import create_spreadsheet, Worksheets, share_spreadsheet, export_production
 
 logger = logging.getLogger(__name__)

@@ -11,7 +11,7 @@ from gspread_formatting import CellFormat, Borders, Border, TextFormat, format_c
 from sqlalchemy.orm import sessionmaker
 
 from tgbot.misc.utils import convert_date_to_gsheet
-from tgbot.models.erp_shift import shift_activity_list, shift_bags_list, shift_material_intake_list, \
+from tgbot.models.erp_shift import shift_day_activity_list, shift_bags_list, shift_material_intake_list, \
     shift_production_list, staff_time_sheet
 
 logger = logging.getLogger(__name__)
@@ -102,7 +102,7 @@ async def export_production(Session: sessionmaker, google_client_manager: Asynci
     spreadsheet = await google_client.open_by_url(spreadsheet_url)
     worksheet_db = await spreadsheet.worksheet("БД пр-во")
     # convert_date_to_gsheet(date: datetime.date, / )
-    production_db = await asyncio.gather(shift_activity_list(Session),
+    production_db = await asyncio.gather(shift_day_activity_list(Session),
                                          shift_material_intake_list(Session),
                                          shift_production_list(Session),
                                          shift_bags_list(Session),
