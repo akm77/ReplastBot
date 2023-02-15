@@ -68,16 +68,22 @@ async def on_delete_shift(c: CallbackQuery, widget: Any, manager: DialogManager,
 async def on_select_shift_object(c: CallbackQuery, widget: Select, manager: DialogManager,
                                  complex_item_id: str):
     ctx = manager.current_context()
-    item_id, dictionary = complex_item_id.split("_")
+    item_id, dictionary, state = complex_item_id.split("_")
     ctx.dialog_data.update(dictionary=dictionary)
-    if item_id == "-1":
+    if item_id == "-1" and dictionary in [constants.SelectDictionary.Employee, constants.SelectDictionary.Activity]:
         await manager.switch_to(ShiftMenu.multi_select_from_dct)
+    elif item_id == "-1" and dictionary in [constants.SelectDictionary.Material, constants.SelectDictionary.Product]:
+        await manager.switch_to(ShiftMenu.select_from_dct)
     elif dictionary == constants.SelectDictionary.Employee:
         ctx.dialog_data.update(employee_id=item_id)
         await manager.switch_to(ShiftMenu.enter_hours_worked)
     elif dictionary == constants.SelectDictionary.Activity:
         ctx.dialog_data.update(activity_line_number=item_id)
         await manager.switch_to(ShiftMenu.enter_activity_comment)
+    elif dictionary == constants.SelectDictionary.Material:
+        ctx.dialog_data.update(material_line_number=item_id)
+    elif dictionary == constants.SelectDictionary.Product:
+        ctx.dialog_data.update(product_line_number=item_id)
 
 
 async def on_select_shift_activity(c: CallbackQuery, widget: Any, manager: DialogManager,
@@ -105,6 +111,11 @@ async def on_multi_select_dct_item(c: CallbackQuery, select: Multiselect,
         ctx.widget_data.update(current_items_id=current_items_id)
 
 
+async def on_select_dct_item(c: CallbackQuery, select: Multiselect,
+                             manager: DialogManager, item_id: str):
+    await manager.switch_to(ShiftMenu.select_shift)
+
+
 async def on_select_material(c: CallbackQuery, select: Multiselect,
                              manager: DialogManager, item_id: str):
     pass
@@ -125,7 +136,7 @@ async def on_cancel_button_click(c: CallbackQuery, button: Button, manager: Dial
     elif current_state == ShiftMenu.multi_select_from_dct:
         ctx.widget_data.pop("start_items_id")
         ctx.widget_data.pop("current_items_id")
-        ctx.widget_data.pop(constants.ShiftDialogId.SELECT_FROM_DCT)
+        ctx.widget_data.pop(constants.ShiftDialogId.MULTI_SELECT_FROM_DCT)
 
 
 async def on_save_button_click(c: CallbackQuery, button: Button, manager: DialogManager):
@@ -137,9 +148,9 @@ async def on_save_button_click(c: CallbackQuery, button: Button, manager: Dialog
     config: Config = manager.data.get("config")
     if current_state == ShiftMenu.multi_select_from_dct:
         dictionary = ctx.dialog_data.get("dictionary")
-        ms: Multiselect = manager.dialog().find(constants.ShiftDialogId.SELECT_FROM_DCT)
+        ms: Multiselect = manager.dialog().find(constants.ShiftDialogId.MULTI_SELECT_FROM_DCT)
         start_items_id = set(map(int, ctx.widget_data.get("start_items_id")))
-        result_items_id = set(map(int, ctx.widget_data.get(constants.ShiftDialogId.SELECT_FROM_DCT)))
+        result_items_id = set(map(int, ctx.widget_data.get(constants.ShiftDialogId.MULTI_SELECT_FROM_DCT)))
         items_for_add = result_items_id - start_items_id
         items_for_delete = start_items_id - result_items_id
         ctx.widget_data.pop("start_items_id")

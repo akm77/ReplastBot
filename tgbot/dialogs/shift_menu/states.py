@@ -11,5 +11,6 @@ class ShiftMenu(StatesGroup):
     enter_hours_worked = State()
     enter_activity_comment = State()
     multi_select_from_dct = State()
+    select_from_dct = State()
 
 

@@ -3,7 +3,7 @@ import logging
 from typing import Optional, List
 
 from . import constants
-from ...models.erp_dict import ERPEmployee, dct_list, ERPActivity
+from ...models.erp_dict import ERPEmployee, dct_list, ERPActivity, ERPMaterial, ERPProduct
 from ...models.erp_shift import ERPShift, shift_list_full, shift_read, get_shift_staff_member, select_day_shift_numbers, \
     read_shift_activity
 from ...widgets.aiogram_dialog import DialogManager
@@ -13,35 +13,35 @@ logger = logging.getLogger(__name__)
 
 
 def get_shift_staff_list(shift: ERPShift) -> Optional[List]:
-    staff_button = [("<- ПЕРСОНАЛ ->", f"-1_{constants.SelectDictionary.Employee}")]
+    staff_button = [("<- ПЕРСОНАЛ ->", f"-1_{constants.SelectDictionary.Employee}_0")]
     return staff_button + [(f"{employee.employee.name} - {employee.hours_worked} ч",
-                            f"{employee.employee_id}_{constants.SelectDictionary.Employee}")
+                            f"{employee.employee_id}_{constants.SelectDictionary.Employee}_0")
                            for employee in shift.shift_staff]
 
 
 def get_shift_activity_list(shift: ERPShift) -> Optional[List]:
-    activity_button = [("<- РАБОТЫ ->", f"-1_{constants.SelectDictionary.Activity}")]
+    activity_button = [("<- РАБОТЫ ->", f"-1_{constants.SelectDictionary.Activity}_0")]
     return activity_button + [(f"{activity.activity.name} {'(' + activity.comment + ')' if activity.comment else ''}",
-                               f"{activity.line_number}_{constants.SelectDictionary.Activity}")
+                               f"{activity.line_number}_{constants.SelectDictionary.Activity}_0")
                               for activity in shift.shift_activities]
 
 
 def get_shift_material_list(shift: ERPShift) -> Optional[List]:
-    material_button = [("<- СЫРЬЁ ->", str(constants.SelectDictionary.Activity))]
+    material_button = [("<- СЫРЬЁ ->", f"-1_{constants.SelectDictionary.Material}_0")]
     return material_button + [(f"#{material.line_number} {material.material.name} - "
                                f"{material.quantity} {material.material.uom_code} "
                                f"{'✅' if material.is_processed else '‼️'}",
-                               f"{material.line_number}_{material.material_id}")
+                               f"{material.line_number}_{constants.SelectDictionary.Material}_{material.is_processed}")
                               for material in shift.shift_materials]
 
 
 def get_shift_product_list(shift: ERPShift) -> Optional[List]:
     state = {'ok': '✅', 'todo': '‼️', 'back': '📛'}
-    product_button = [("<- ПРОДУКЦИЯ ->", str(constants.SelectDictionary.Product))]
+    product_button = [("<- ПРОДУКЦИЯ ->", f"-1_{constants.SelectDictionary.Product}_0")]
     return product_button + [(f"#{product.id} {product.product.name} - "
                               f"{product.quantity} {product.product.uom_code} "
                               f"{state[product.state]}",
-                              f"{product.id}_{product.product_id}")
+                              f"{product.line_number}_{constants.SelectDictionary.Product}_{product.state}")
                              for product in shift.shift_products]
 
 
@@ -151,7 +151,7 @@ async def multi_select_from_dct(dialog_manager: DialogManager, **middleware_data
     shift_number = ctx.dialog_data.get("shift_number")
     dictionary = ctx.dialog_data.get("dictionary")
     session = middleware_data.get('session')
-    ms: Multiselect = dialog_manager.dialog().find(constants.ShiftDialogId.SELECT_FROM_DCT)
+    ms: Multiselect = dialog_manager.dialog().find(constants.ShiftDialogId.MULTI_SELECT_FROM_DCT)
 
     try:
         shift = await shift_read(session,
@@ -183,6 +183,20 @@ async def multi_select_from_dct(dialog_manager: DialogManager, **middleware_data
                                manager=dialog_manager)) for item in items
          if str(item[1]) in current_items_id]
 
+    return {"items": items}
+
+
+async def select_from_dct(dialog_manager: DialogManager, **middleware_data):
+    ctx = dialog_manager.current_context()
+    dictionary = ctx.dialog_data.get("dictionary")
+    session = middleware_data.get('session')
+    items = []
+    if dictionary == constants.SelectDictionary.Material:
+        db_dct_list = await dct_list(Session=session, table_class=ERPMaterial, joined_load=ERPMaterial.material_type)
+        items = [(f"{item.name} ({item.material_type.name})", item.id) for item in db_dct_list]
+    elif dictionary == constants.SelectDictionary.Product:
+        db_dct_list = await dct_list(Session=session, table_class=ERPProduct, joined_load=ERPProduct.product_type)
+        items = [(f"{item.name} ({item.product_type.name})", item.id) for item in db_dct_list]
     return {"items": items}
 
 

@@ -38,8 +38,10 @@ class ShiftDialogId(str, Enum):
     SWITCH_TO_SHIFT_LIST = "sdi16"
     DONT_SAVE_AND_SWITCH_TO_SHIFT_LIST = "sdi17"
     SAVE_AND_SWITCH_TO_SHIFT_LIST = "sdi18"
-    SELECT_FROM_DCT = "sdi19"
-    DCT_LIST = "sdi20"
+    MULTI_SELECT_FROM_DCT = "sdi19"
+    MULTI_SELECT_DCT_LIST = "sdi20"
+    SELECT_FROM_DCT = "sdi21"
+    DCT_LIST = "sdi22"
 
     def __str__(self) -> str:
         return str.__str__(self)

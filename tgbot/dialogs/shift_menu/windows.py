@@ -12,8 +12,8 @@ def shift_window():
         keyboards.shift_list_kbd(onclick.on_select_shift, events.on_shift_list_page_changed, onclick.on_enter_page),
         keyboards.shift_staff_kbd(onclick.on_select_shift_object),
         keyboards.shift_activity_kbd(onclick.on_select_shift_object),
-        keyboards.shift_product_kbd(onclick.on_select_shift_product),
-        keyboards.shift_material_kbd(onclick.on_select_shift_material),
+        keyboards.shift_product_kbd(onclick.on_select_shift_object),
+        keyboards.shift_material_kbd(onclick.on_select_shift_object),
         Cancel(Const("<<"),
                id=constants.ShiftDialogId.SHIFT_DIALOG_EXIT,
                on_click=onclick.on_click_exit,
@@ -90,10 +90,19 @@ def select_shift_date_window(tz: str = "UTC", calendar_locale=(None, None)):
 def multi_select_from_dct_window():
     return Window(
         Const("Выберите из списка"),
-        keyboards.select_from_dct_kbd(on_click=onclick.on_multi_select_dct_item),
+        keyboards.multi_select_from_dct_kbd(on_click=onclick.on_multi_select_dct_item),
         keyboards.switch_to_shift_list_kbd(onclick.on_cancel_button_click, onclick.on_save_button_click),
         state=ShiftMenu.multi_select_from_dct,
         getter=getters.multi_select_from_dct
+    )
+
+
+def select_from_dct_window():
+    return Window(
+        Const("Выберите из списка"),
+        keyboards.select_from_dct_kbd(on_click=onclick.on_select_dct_item),
+        state=ShiftMenu.select_from_dct,
+        getter=getters.select_from_dct
     )
 
 
