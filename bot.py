@@ -45,7 +45,7 @@ async def main():
     config = load_config(".env")
 
     storage = RedisStorage2(prefix="r_fsm") if config.tg_bot.use_redis else MemoryStorage()
-    await storage.reset_all()
+    # await storage.reset_all()
     bot = Bot(token=config.tg_bot.token, parse_mode='HTML')
     dp = Dispatcher(bot, storage=storage)
     google_client_manager: AsyncioGspreadClientManager = AsyncioGspreadClientManager(
