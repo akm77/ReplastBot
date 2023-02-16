@@ -3,7 +3,7 @@ import logging
 from typing import Optional, List
 
 from . import constants
-from ...models.erp_dict import ERPEmployee, dct_list, ERPActivity, ERPMaterial, ERPProduct
+from ...models.erp_dict import ERPEmployee, dct_list, ERPActivity, ERPMaterial, ERPProduct, dct_read
 from ...models.erp_shift import ERPShift, shift_list_full, shift_read, get_shift_staff_member, select_day_shift_numbers, \
     read_shift_activity
 from ...widgets.aiogram_dialog import DialogManager
@@ -38,7 +38,8 @@ def get_shift_material_list(shift: ERPShift) -> Optional[List]:
 def get_shift_product_list(shift: ERPShift) -> Optional[List]:
     state = {'ok': '✅', 'todo': '‼️', 'back': '📛'}
     product_button = [("<- ПРОДУКЦИЯ ->", f"-1_{constants.SelectDictionary.Product}_0")]
-    return product_button + [(f"#{product.id} {product.product.name} - "
+    return product_button + [(f"#{bn.batch_number if (bn := product.product_butch_number) else ''} "
+                              f"{product.product.name} - "
                               f"{product.quantity} {product.product.uom_code} "
                               f"{state[product.state]}",
                               f"{product.line_number}_{constants.SelectDictionary.Product}_{product.state}")
@@ -216,3 +217,58 @@ async def get_shift_activity(dialog_manager: DialogManager, **middleware_data):
             "shift_duration": shift_duration,
             "activity_name": activity.activity.name,
             "activity_comment": activity.comment if activity.comment else ""}
+
+
+async def get_shift_material_quantity(dialog_manager: DialogManager, **middleware_data):
+    # Format("Текущая смена☞ дата: {shift_date} номер: {shift_number} время: {shift_duration} ч\n"
+    #        "Сырье - {material_name}.\n"
+    #        "👇Количество: {material_quantity}.👇"),
+    session = middleware_data.get('session')
+    ctx = dialog_manager.current_context()
+    shift_date = ctx.dialog_data.get("shift_date")
+    shift_number = int(ctx.dialog_data.get("shift_number"))
+    shift_duration = float(ctx.dialog_data.get("shift_duration"))
+    material_id = int(n) if (n := ctx.dialog_data.get("material_id")) else 0
+    material_line_number = int(n) if (n := ctx.dialog_data.get("material_line_number")) else 0
+    dct = {"shift_date": shift_date,
+           "shift_number": shift_number,
+           "shift_duration": shift_duration,
+           "material_name": "",
+           "material_quantity": 0}
+    if material_line_number <= 0:
+        material: ERPMaterial = await dct_read(session, ERPMaterial,
+                                               joined_load=ERPMaterial.material_type,
+                                               id=material_id)
+        if not material:
+            return
+        dct["material_name"] = f"{material.name} ({material.material_type.name})"
+
+    return dct
+
+
+async def get_shift_product_bag_quantity(dialog_manager: DialogManager, **middleware_data):
+    # Format("Текущая смена☞ дата: {shift_date} номер: {shift_number} время: {shift_duration} ч\n"
+    #        "Продукция - {product_name}.\n"
+    #        "👇Мешок: {bag_number} Количество: {product_quantity}.👇"),
+    session = middleware_data.get('session')
+    ctx = dialog_manager.current_context()
+    shift_date = ctx.dialog_data.get("shift_date")
+    shift_number = int(ctx.dialog_data.get("shift_number"))
+    shift_duration = float(ctx.dialog_data.get("shift_duration"))
+    product_id = int(n) if (n := ctx.dialog_data.get("product_id")) else 0
+    product_line_number = int(n) if (n := ctx.dialog_data.get("product_line_number")) else 0
+    dct = {"shift_date": shift_date,
+           "shift_number": shift_number,
+           "shift_duration": shift_duration,
+           "bag_number": "#",
+           "product_name": "",
+           "product_quantity": 0}
+    if product_line_number <= 0:
+        product: ERPProduct = await dct_read(session, ERPProduct,
+                                             joined_load=ERPProduct.product_type,
+                                             id=product_id)
+        if not product:
+            return
+        dct["product_name"] = f"{product.name} ({product.product_type.name})"
+
+    return dct

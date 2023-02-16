@@ -8,7 +8,6 @@ from sqlalchemy.engine import Result
 from sqlalchemy.orm import relationship, sessionmaker, joinedload, backref
 from sqlalchemy.sql import expression
 
-from tgbot.misc.utils import value_to_decimal
 from tgbot.models.base import TimedBaseModel, FinanceInteger, column_list, BaseModel
 from tgbot.models.erp_dict import ERPEmployee, ERPActivity, ERPMaterial, ERPProduct
 
@@ -92,7 +91,7 @@ class ERPShiftMaterial(BaseModel):
 
 
 class ERPShiftProduct(BaseModel):
-    __tablename__ = "erp_shift_producti"
+    __tablename__ = "erp_shift_product"
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -103,7 +102,7 @@ class ERPShiftProduct(BaseModel):
     )
     shift_date = Column(Date(), server_default=func.date('now', 'localtime'), primary_key=True)
     shift_number = Column(Integer, CheckConstraint("shift_number IN (1, 2, 3)", name="check_number"), primary_key=True)
-    line_number = Column(Integer, primary_key=True)
+    line_number = Column(Integer, nullable=False, primary_key=True)
     product_id = Column(Integer, ForeignKey('erp_product.id', ondelete="RESTRICT", onupdate="CASCADE"))
     quantity = Column(FinanceInteger, nullable=False, server_default=text("0"))
     state = Column(String(length=4), CheckConstraint("state IN ('ok', 'todo', 'back')",
@@ -112,6 +111,22 @@ class ERPShiftProduct(BaseModel):
     comment = Column(String(length=128), nullable=True)
     shift = relationship("ERPShift", back_populates="shift_products")
     product = relationship("ERPProduct", backref=backref("shift_product", uselist=False))
+
+
+class ERPBatchNumber(BaseModel):
+    __tablename__ = "erp_batch_number"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ('shift_date', 'shift_number', 'line_number'),
+            ['erp_shift_product.shift_date', 'erp_shift_product.shift_number', 'erp_shift_product.line_number'],
+            ondelete="RESTRICT", onupdate="CASCADE"
+        ),
+    )
+    shift_date = Column(Date(), server_default=func.date('now', 'localtime'), primary_key=True)
+    shift_number = Column(Integer, CheckConstraint("shift_number IN (1, 2, 3)", name="check_number"), primary_key=True)
+    line_number = Column(Integer, primary_key=True)
+    batch_number = Column(String(128), nullable=False, unique=True)
+    product = relationship("ERPShiftProduct", backref=backref("product_butch_number", uselist=False))
 
 
 async def shift_create(Session: sessionmaker, **kwargs) -> Optional[ERPShift]:
@@ -210,7 +225,7 @@ async def shift_read(Session: sessionmaker, **kwargs) -> Optional[ERPShift]:
         ERPMaterial.shift_material))
     statement = statement.options(joinedload(ERPShift.shift_products).joinedload(
         ERPShiftProduct.product).joinedload(
-        ERPProduct.shift_product))
+        ERPProduct.shift_product).joinedload(ERPShiftProduct.product_butch_number))
     async with Session() as session:
         result = await session.execute(statement)
         return result.scalar()
@@ -225,7 +240,7 @@ async def select_day_shift_numbers(Session: sessionmaker, **kwargs) -> Optional[
         return result.scalars().all()
 
 
-async def material_intake_create(Session: sessionmaker, **kwargs) -> Optional[List[ERPShiftMaterial]]:
+async def material_intake_create(Session: sessionmaker, **kwargs):
     """
     Create list of materials that did intake. kwargs must have the following attributes:
 
@@ -244,28 +259,37 @@ async def material_intake_create(Session: sessionmaker, **kwargs) -> Optional[Li
     :return:
     """
 
-    if kwargs.get('shift_date', None) is None or \
-            kwargs.get('shift_number', None) is None or \
-            kwargs.get('materials', None) is None:
+    if kwargs.get('shift_date') is None or \
+            kwargs.get('shift_number') is None or \
+            kwargs.get('material_id') is None:
         return
-    start_line = 1 if kwargs.get('start_line', None) is None else kwargs['start_line']
-    materials = kwargs['materials']
-    if not isinstance(materials, dict):
-        return
+
     shift_date = kwargs['shift_date']
     shift_number = kwargs['shift_number']
-    values = [{"shift_date": shift_date,
-               "shift_number": shift_number,
-               "line_number": line_number,
-               "material_id": int(material),
-               "quantity": value_to_decimal(materials[material]["weight"], decimal_places=2)}
-              for line_number, material in enumerate(materials, start=start_line)]
+
+    values = {k: v for k, v in kwargs.items() if k in column_list(ERPShiftMaterial)}
+
+    select_numbering_rows = select(
+        func.row_number().over(order_by=ERPShiftMaterial.line_number).label("row_number"),
+        ERPShiftMaterial.line_number,
+        ERPShiftMaterial.material_id).where(ERPShiftMaterial.shift_date == shift_date,
+                                            ERPShiftMaterial.shift_number == shift_number)
+
     async with Session() as session:
+        result: Result = await session.execute(select_numbering_rows)
+        lines = result.fetchall()
+        for line in lines:
+            if line.row_number == line.line_number:
+                continue
+            update_statement = update(ERPShiftMaterial).where(ERPShiftMaterial.shift_date == shift_date,
+                                                              ERPShiftMaterial.shift_number == shift_number,
+                                                              ERPShiftMaterial.line_number == line.line_number
+                                                              ).values({"line_number": line.row_number})
+            await session.execute(update_statement)
+        values["line_number"] = len(lines) + 1
         statement = insert(ERPShiftMaterial).values(values)
         await session.execute(statement)
         await session.commit()
-        result = await material_intake_read_shift(Session=Session, shift_date=shift_date, shift_number=shift_number)
-        return result
 
 
 async def material_intake_read_line(Session: sessionmaker, **kwargs) -> Optional[ERPShiftMaterial]:
@@ -454,7 +478,7 @@ async def material_intake_delete_shift(Session: sessionmaker, **kwargs) -> Optio
         return True if result.rowcount else False
 
 
-async def shift_report_create(Session: sessionmaker, **kwargs) -> Optional[List[ERPShiftProduct]]:
+async def shift_product_line_create(Session: sessionmaker, **kwargs):
     """
     Create list of products that were made in given shift. kwargs must have the following attributes:
 
@@ -471,27 +495,45 @@ async def shift_report_create(Session: sessionmaker, **kwargs) -> Optional[List[
     :param Session: DB session object
     :param kwargs:
     :return:    """
-    if kwargs.get('shift_date', None) is None or \
-            kwargs.get('shift_number', None) is None or \
-            kwargs.get('products', None) is None:
+    if kwargs.get('shift_date') is None or \
+            kwargs.get('shift_number') is None or \
+            kwargs.get('product_id') is None:
         return
-    products = kwargs['products']
-    if not isinstance(products, dict):
-        return
+
     shift_date = kwargs['shift_date']
     shift_number = kwargs['shift_number']
-    values = [{"id": int(products[product]["bag_number"]),
-               "shift_date": shift_date,
-               "shift_number": shift_number,
-               "product_id": int(product),
-               "quantity": value_to_decimal(products[product]["weight"], decimal_places=2)}
-              for product in products]
-    statement = insert(ERPShiftProduct).values(values)
+    batch_number = kwargs.get('batch_number')
+
+    values = {k: v for k, v in kwargs.items() if k in column_list(ERPShiftProduct)}
+
+    select_numbering_rows = select(
+        func.row_number().over(order_by=ERPShiftProduct.line_number).label("row_number"),
+        ERPShiftProduct.line_number,
+        ERPShiftProduct.product_id).where(ERPShiftProduct.shift_date == shift_date,
+                                          ERPShiftProduct.shift_number == shift_number)
+
     async with Session() as session:
+        result: Result = await session.execute(select_numbering_rows)
+        lines = result.fetchall()
+        for line in lines:
+            if line.row_number == line.line_number:
+                continue
+            update_statement = update(ERPShiftProduct).where(ERPShiftProduct.shift_date == shift_date,
+                                                             ERPShiftProduct.shift_number == shift_number,
+                                                             ERPShiftProduct.line_number == line.line_number
+                                                             ).values({"line_number": line.row_number})
+            await session.execute(update_statement)
+        values["line_number"] = len(lines) + 1
+        statement = insert(ERPShiftProduct).values(values)
         await session.execute(statement)
+
+        values = {k: v for k, v in kwargs.items() if k in column_list(ERPBatchNumber)}
+        values["line_number"] = len(lines) + 1
+        values["batch_number"] = batch_number
+        statement = insert(ERPBatchNumber).values(values)
+        await session.execute(statement)
+
         await session.commit()
-        result = await shift_report_read_shift(Session=Session, shift_date=shift_date, shift_number=shift_number)
-        return result
 
 
 async def shift_report_read_shift(Session: sessionmaker, **kwargs) -> Optional[List[ERPShiftProduct]]:

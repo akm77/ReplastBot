@@ -12,5 +12,7 @@ class ShiftMenu(StatesGroup):
     enter_activity_comment = State()
     multi_select_from_dct = State()
     select_from_dct = State()
+    enter_material_quantity = State()
+    enter_product_bag_quantity = State()
 
 

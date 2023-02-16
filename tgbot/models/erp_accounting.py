@@ -5,11 +5,10 @@ from typing import Optional
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import Column, Integer, ForeignKey, String, text, CheckConstraint, Boolean, func, DateTime, \
-    select, Date
+    select, Date, ForeignKeyConstraint
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.orm import sessionmaker, relationship, joinedload, aliased, backref
 from sqlalchemy.sql import expression
-
 from tgbot.models.base import BaseModel, AccountingInteger
 
 logger = logging.getLogger(__name__)

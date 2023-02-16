@@ -1,13 +1,17 @@
 import datetime
+import logging
 from typing import Any, Optional
 
 from .states import ShiftMenu
-from ...models.erp_shift import upsert_shift_staff, shift_update, set_shift_activity_comment
+from ...models.erp_shift import upsert_shift_staff, shift_update, set_shift_activity_comment, material_intake_create, \
+    shift_product_line_create
 from ...widgets.aiogram_dialog import DialogManager
 from ...widgets.aiogram_dialog.context.events import ChatEvent, Data
 from ...widgets.aiogram_dialog.widgets.input import TextInput
 from ...widgets.aiogram_dialog.widgets.kbd import ManagedScrollingGroupAdapter
 from ...widgets.aiogram_dialog.widgets.managed import ManagedWidgetAdapter
+
+logger = logging.getLogger(__name__)
 
 
 def mark_shift_day(manager: DialogManager) -> Optional[datetime.date]:
@@ -93,4 +97,68 @@ async def on_success_enter_activity_comment(c: ChatEvent, widget: TextInput, man
 
 
 async def on_error_enter_activity_comment(c: ChatEvent, widget: TextInput, manager: DialogManager):
+    pass
+
+
+async def on_success_enter_material_quantity(c: ChatEvent, widget: TextInput, manager: DialogManager, value):
+    session = manager.data.get("session")
+    ctx = manager.current_context()
+    shift_date = ctx.dialog_data.get("shift_date")
+    shift_number = int(ctx.dialog_data.get("shift_number"))
+    material_id = int(n) if (n := ctx.dialog_data.get("material_id")) else 0
+    material_line_number = int(n) if (n := ctx.dialog_data.get("material_line_number")) else 0
+    try:
+        if ctx.dialog_data.get("material_id"):
+            ctx.dialog_data.pop("material_id")
+        if ctx.dialog_data.get("material_line_number"):
+            ctx.dialog_data.pop("material_line_number")
+        quantity, *tail = value.split()
+        comment = "".join(tail)
+        quantity = float(quantity)
+        if material_line_number <= 0:
+            await material_intake_create(Session=session,
+                                         shift_date=datetime.date.fromisoformat(shift_date),
+                                         shift_number=shift_number,
+                                         material_id=material_id,
+                                         quantity=quantity,
+                                         comment=comment)
+    except Exception as e:
+        logger.error("Error occurred while creating material intake. %r", e)
+    await manager.switch_to(ShiftMenu.select_shift)
+
+
+async def on_error_enter_material_quantity(c: ChatEvent, widget: TextInput, manager: DialogManager, value):
+    pass
+
+
+async def on_success_enter_product_bag_quantity(c: ChatEvent, widget: TextInput, manager: DialogManager, value):
+    session = manager.data.get("session")
+    ctx = manager.current_context()
+    shift_date = ctx.dialog_data.get("shift_date")
+    shift_number = int(ctx.dialog_data.get("shift_number"))
+    product_id = int(n) if (n := ctx.dialog_data.get("product_id")) else 0
+    product_line_number = int(n) if (n := ctx.dialog_data.get("product_line_number")) else 0
+    try:
+        if ctx.dialog_data.get("product_id"):
+            ctx.dialog_data.pop("product_id")
+        if ctx.dialog_data.get("product_line_number"):
+            ctx.dialog_data.pop("product_line_number")
+        batch_number, quantity, *tail = value.split()
+        comment = "".join(tail)
+        batch_number = int(batch_number)
+        quantity = float(quantity)
+        if product_line_number <= 0:
+            await shift_product_line_create(Session=session,
+                                            shift_date=datetime.date.fromisoformat(shift_date),
+                                            shift_number=shift_number,
+                                            batch_number=batch_number,
+                                            product_id=product_id,
+                                            quantity=quantity,
+                                            comment=comment)
+    except Exception as e:
+        logger.error("Error occurred while creating product line. %r", e)
+    await manager.switch_to(ShiftMenu.select_shift)
+
+
+async def on_error_enter_product_bag_quantity(c: ChatEvent, widget: TextInput, manager: DialogManager, value):
     pass

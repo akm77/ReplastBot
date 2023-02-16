@@ -111,9 +111,16 @@ async def on_multi_select_dct_item(c: CallbackQuery, select: Multiselect,
         ctx.widget_data.update(current_items_id=current_items_id)
 
 
-async def on_select_dct_item(c: CallbackQuery, select: Multiselect,
+async def on_select_dct_item(c: CallbackQuery, select: Select,
                              manager: DialogManager, item_id: str):
-    await manager.switch_to(ShiftMenu.select_shift)
+    ctx = manager.current_context()
+    dictionary = ctx.dialog_data.get("dictionary")
+    if dictionary == constants.SelectDictionary.Material:
+        ctx.dialog_data.update(material_id=item_id)
+        await manager.switch_to(ShiftMenu.enter_material_quantity)
+    elif dictionary == constants.SelectDictionary.Product:
+        ctx.dialog_data.update(product_id=item_id)
+        await manager.switch_to(ShiftMenu.enter_product_bag_quantity)
 
 
 async def on_select_material(c: CallbackQuery, select: Multiselect,

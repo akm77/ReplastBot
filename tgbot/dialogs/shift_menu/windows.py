@@ -37,7 +37,7 @@ def edit_shift_window():
     )
 
 
-def edit_shift_duration_window():
+def set_shift_duration_window():
     return Window(
         Format("Смена 👇\nДата: {shift_date} номер: {shift_number} время: {shift_duration} ч"),
         TextInput(id=constants.ShiftDialogId.ENTER_SHIFT_DURATION,
@@ -92,6 +92,9 @@ def multi_select_from_dct_window():
         Const("Выберите из списка"),
         keyboards.multi_select_from_dct_kbd(on_click=onclick.on_multi_select_dct_item),
         keyboards.switch_to_shift_list_kbd(onclick.on_cancel_button_click, onclick.on_save_button_click),
+        SwitchTo(Const("<<"),
+                 id="ms_d_bsm",
+                 state=ShiftMenu.select_shift),
         state=ShiftMenu.multi_select_from_dct,
         getter=getters.multi_select_from_dct
     )
@@ -101,6 +104,9 @@ def select_from_dct_window():
     return Window(
         Const("Выберите из списка"),
         keyboards.select_from_dct_kbd(on_click=onclick.on_select_dct_item),
+        SwitchTo(Const("<<"),
+                 id="s_d_bsm",
+                 state=ShiftMenu.select_shift),
         state=ShiftMenu.select_from_dct,
         getter=getters.select_from_dct
     )
@@ -120,7 +126,7 @@ def update_staff_member_window():
     )
 
 
-def update_activity_comment():
+def set_activity_comment():
     return Window(
         Format("Текущая смена☞ дата: {shift_date} номер: {shift_number} время: {shift_duration} ч\n"
                "Работа - {activity_name}.\n"
@@ -131,4 +137,32 @@ def update_activity_comment():
                   on_error=events.on_error_enter_activity_comment),
         state=ShiftMenu.enter_activity_comment,
         getter=getters.get_shift_activity
+    )
+
+
+def set_material_quantity():
+    return Window(
+        Format("Текущая смена☞ дата: {shift_date} номер: {shift_number} время: {shift_duration} ч\n"
+               "Сырье - {material_name}.\n"
+               "👇Количество: {material_quantity}.👇"),
+        TextInput(id=constants.ShiftDialogId.ENTER_MATERIAL_QUANTITY,
+                  type_factory=str,
+                  on_success=events.on_success_enter_material_quantity,
+                  on_error=events.on_error_enter_material_quantity),
+        state=ShiftMenu.enter_material_quantity,
+        getter=getters.get_shift_material_quantity
+    )
+
+
+def set_product_bag_quantity():
+    return Window(
+        Format("Текущая смена☞ дата: {shift_date} номер: {shift_number} время: {shift_duration} ч\n"
+               "Продукция - {product_name}.\n"
+               "👇Мешок: {bag_number} Количество: {product_quantity}.👇"),
+        TextInput(id=constants.ShiftDialogId.ENTER_PRODUCT_BAG_QUANTITY,
+                  type_factory=str,
+                  on_success=events.on_success_enter_product_bag_quantity,
+                  on_error=events.on_error_enter_product_bag_quantity),
+        state=ShiftMenu.enter_product_bag_quantity,
+        getter=getters.get_shift_product_bag_quantity
     )
