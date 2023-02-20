@@ -136,8 +136,8 @@ class ERPContractor(ERPSimpleDict):
     is_buyer = Column(Boolean, nullable=False, server_default=expression.false())
 
 
-DICT_LIST = [ERPCity, ERPContractor, ERPEmployee, ERPActivity, ERPMaterialType,
-             ERPProductType, ERPUnitOfMeasurement, ERPMaterial, ERPProduct]
+DICT_LIST = [ERPCity, ERPContractor, ERPEmployee, ERPActivity, ERPUnitOfMeasurement, ERPMaterialType,
+             ERPMaterial, ERPProductType,  ERPProduct]
 
 
 async def dct_create(Session: sessionmaker, table_class: Base, **kwargs):
