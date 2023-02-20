@@ -214,10 +214,8 @@ async def shift_read(Session: sessionmaker, **kwargs) -> Optional[ERPShift]:
     statement = statement.options(joinedload(ERPShift.shift_staff
                                              ).joinedload(
         ERPShiftStaff.employee))
-    statement = statement.options(joinedload(ERPShift.shift_activities,
-                                             ).joinedload(
-        ERPShiftActivity.activity).joinedload(
-        ERPActivity.shift_activity))
+    statement = statement.options(joinedload(ERPShift.shift_activities
+                                             ).joinedload(ERPShiftActivity.activity))
     statement = statement.options(joinedload(ERPShift.shift_materials
                                              ).joinedload(
         ERPShiftMaterial.material).joinedload(
