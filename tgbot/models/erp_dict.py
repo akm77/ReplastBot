@@ -65,29 +65,10 @@ class ERPUnitOfMeasurement(ERPSimpleDict):
     __tablename__ = "erp_uom"
 
     code = Column(String(length=25), nullable=False, index=True, unique=True)
-    derived_uoms = relationship("ERPMaterialUoM", back_populates="uom")
     @declared_attr
     def hr_names(self):
         return {"type": DictType.COMPLEX,
                 "table_name": "Единицы измерения",
-                "name_name": "Название",
-                "code_name": "Код"}
-
-
-class ERPMaterialUoM(ERPSimpleDict):
-    __tablename__ = "erp_uom_material"
-
-    material_id = Column(Integer, ForeignKey('erp_material.id', ondelete="RESTRICT", onupdate="CASCADE"))
-    uom_code = Column(String(length=25),
-                      ForeignKey('erp_uom.code', ondelete="RESTRICT", onupdate="CASCADE"),
-                      primary_key=True)
-    uom = relationship("ERPUnitOfMeasurement", back_populates="derived_uoms")
-    derived_uom = relationship("ERPMaterial", back_populates="derived_uoms")
-
-    @declared_attr
-    def hr_names(self):
-        return {"type": DictType.COMPLEX,
-                "table_name": "Единицы измерения сырья",
                 "name_name": "Название",
                 "code_name": "Код"}
 
@@ -104,11 +85,10 @@ class ERPMaterial(ERPSimpleDict):
 
     material_type_id = Column(Integer,
                               ForeignKey('erp_material_type.id', ondelete="RESTRICT", onupdate="CASCADE"))
-    material_type = relationship("ERPMaterialType", backref=backref("erp_material", uselist=False))
     uom_code = Column(String(length=5),
                       ForeignKey('erp_uom.code', ondelete="RESTRICT", onupdate="CASCADE"), server_default=text("кг"))
-    derived_uoms = relationship("ERPMaterialUoM", back_populates="derived_uom")
     impurity = Column(FinanceInteger, nullable=False, server_default=text("1000"))
+    material_type = relationship("ERPMaterialType", backref=backref("erp_material", uselist=False))
 
 
 class ERPProduct(ERPSimpleDict):
