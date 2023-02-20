@@ -86,8 +86,8 @@ class ERPShiftMaterial(BaseModel):
     quantity = Column(FinanceInteger, nullable=False, server_default=text("0"))
     is_processed = Column(Boolean, nullable=False, server_default=expression.false())
     comment = Column(String(length=128), nullable=True)
-    material = relationship("ERPMaterial", backref=backref("shift_material", uselist=False))
     shift = relationship("ERPShift", back_populates="shift_materials")
+    material = relationship("ERPMaterial", backref=backref("shift_material", uselist=False))
 
 
 class ERPShiftProduct(BaseModel):
@@ -213,8 +213,7 @@ async def shift_read(Session: sessionmaker, **kwargs) -> Optional[ERPShift]:
     statement = select(ERPShift).where(ERPShift.date == kwargs['date'], ERPShift.number == kwargs['number'])
     statement = statement.options(joinedload(ERPShift.shift_staff
                                              ).joinedload(
-        ERPShiftStaff.employee).joinedload(
-        ERPEmployee.shift_staff_member))
+        ERPShiftStaff.employee))
     statement = statement.options(joinedload(ERPShift.shift_activities,
                                              ).joinedload(
         ERPShiftActivity.activity).joinedload(
