@@ -30,7 +30,8 @@ def get_shift_material_list(shift: ERPShift) -> Optional[List]:
     material_button = [("<- СЫРЬЁ ->", f"-1_{constants.SelectDictionary.Material}_0")]
     return material_button + [(f"#{material.line_number} {material.material.name} - "
                                f"{material.quantity} {material.material.uom_code} "
-                               f"{'✅' if material.is_processed else '‼️'}",
+                               f"{'✅' if material.is_processed else '‼️'}"
+                               f" {'(' + material.comment + ')' if material.comment else ''}",
                                f"{material.line_number}_{constants.SelectDictionary.Material}_{material.is_processed}")
                               for material in shift.shift_materials]
 
@@ -41,7 +42,8 @@ def get_shift_product_list(shift: ERPShift) -> Optional[List]:
     return product_button + [(f"#{bn.batch_number if (bn := product.product_butch_number) else ''} "
                               f"{product.product.name} - "
                               f"{product.quantity} {product.product.uom_code} "
-                              f"{state[product.state]}",
+                              f"{state[product.state]}"
+                              f" {'(' + product.comment + ')' if product.comment else ''}",
                               f"{product.line_number}_{constants.SelectDictionary.Product}_{product.state}")
                              for product in shift.shift_products]
 

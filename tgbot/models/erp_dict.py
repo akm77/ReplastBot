@@ -64,7 +64,7 @@ class ERPProductType(ERPSimpleDict):
 class ERPUnitOfMeasurement(ERPSimpleDict):
     __tablename__ = "erp_uom"
 
-    code = Column(String(length=5), nullable=False, index=True, unique=True)
+    code = Column(String(length=25), nullable=False, index=True, unique=True)
 
     @declared_attr
     def hr_names(self):
@@ -72,6 +72,43 @@ class ERPUnitOfMeasurement(ERPSimpleDict):
                 "table_name": "Единицы измерения",
                 "name_name": "Название",
                 "code_name": "Код"}
+
+
+class ERPMaterialUoM(ERPSimpleDict):
+    __tablename__ = "erp_uom_material"
+
+    material_id = Column(Integer, ForeignKey('erp_material.id', ondelete="RESTRICT", onupdate="CASCADE"))
+    uom_code = Column(String(length=25),
+                      ForeignKey('erp_uom.code', ondelete="RESTRICT", onupdate="CASCADE"),
+                      primary_key=True)
+    uom = relationship("ERPUnitOfMeasurement", backref=backref("derived_material_uom", uselist=False))
+    derived_uom = relationship("ERPMaterial", backref=backref("derived_material_uom", uselist=False))
+
+    @declared_attr
+    def hr_names(self):
+        return {"type": DictType.COMPLEX,
+                "table_name": "Единицы измерения сырья",
+                "name_name": "Название",
+                "code_name": "Код"}
+
+
+class ERPMaterial(ERPSimpleDict):
+    __tablename__ = "erp_material"
+
+    @declared_attr
+    def hr_names(self):
+        return {"type": DictType.COMPLEX,
+                "table_name": "Сырье",
+                "name_name": "Название",
+                "lookup_name": "тип сырья"}
+
+    material_type_id = Column(Integer,
+                              ForeignKey('erp_material_type.id', ondelete="RESTRICT", onupdate="CASCADE"))
+    material_type = relationship("ERPMaterialType", backref=backref("erp_material", uselist=False))
+    uom_code = Column(String(length=5),
+                      ForeignKey('erp_uom.code', ondelete="RESTRICT", onupdate="CASCADE"), server_default=text("кг"))
+    base_uom = relationship("ERPUnitOfMeasurement", backref=backref("base_material_uom", uselist=False))
+    impurity = Column(FinanceInteger, nullable=False, server_default=text("1000"))
 
 
 class ERPProduct(ERPSimpleDict):
@@ -102,25 +139,6 @@ class ERPActivity(ERPSimpleDict):
                 "name_name": "Название"}
 
 
-class ERPMaterial(ERPSimpleDict):
-    __tablename__ = "erp_material"
-
-    @declared_attr
-    def hr_names(self):
-        return {"type": DictType.COMPLEX,
-                "table_name": "Сырье",
-                "name_name": "Название",
-                "lookup_name": "тип сырья"}
-
-    material_type_id = Column(Integer,
-                              ForeignKey('erp_material_type.id', ondelete="RESTRICT", onupdate="CASCADE"))
-    material_type = relationship("ERPMaterialType", backref=backref("erp_material", uselist=False))
-    uom_code = Column(String(length=5),
-                      ForeignKey('erp_uom.code', ondelete="RESTRICT", onupdate="CASCADE"), server_default=text("кг"))
-    material_uom = relationship("ERPUnitOfMeasurement", backref=backref("erp_material_uom", uselist=False))
-    impurity = Column(FinanceInteger, nullable=False, server_default=text("1000"))
-
-
 class ERPContractor(ERPSimpleDict):
     __tablename__ = "erp_contractor"
 
@@ -138,7 +156,8 @@ class ERPContractor(ERPSimpleDict):
     is_buyer = Column(Boolean, nullable=False, server_default=expression.false())
 
 
-DICT_LIST = [ERPEmployee, ERPCity, ERPMaterialType, ERPProductType, ERPProduct, ERPActivity, ERPMaterial, ERPContractor]
+DICT_LIST = [ERPCity, ERPContractor, ERPEmployee, ERPActivity, ERPMaterialType,
+             ERPProductType, ERPUnitOfMeasurement, ERPMaterial, ERPProduct]
 
 
 async def dct_create(Session: sessionmaker, table_class: Base, **kwargs):

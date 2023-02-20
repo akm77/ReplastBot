@@ -7,8 +7,8 @@ from ...widgets.aiogram_dialog.widgets.text import Const
 def main_menu_window():
     return Window(
         Const("Выберите действие"),
-        Row(Button(Const("Новая смена"), id="1st"),
-            Button(Const("Смены"), id="2nd")),
-        Button(Const("<<"), id="_b", on_click=onclick.dialog_done),
+        Row(Button(Const("Справочники"), id="1st", on_click=onclick.on_click_dct_button),
+            Button(Const("Производство"), id="2nd", on_click=onclick.on_click_shift_button)),
+        Cancel(Const("<<")),
         state=states.MainMenu.select_action
     )
