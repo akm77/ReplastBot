@@ -14,10 +14,14 @@ def shift_window():
         keyboards.shift_activity_kbd(onclick.on_select_shift_object),
         keyboards.shift_product_kbd(onclick.on_select_shift_object),
         keyboards.shift_material_kbd(onclick.on_select_shift_object),
-        Cancel(Const("<<"),
-               id=constants.ShiftDialogId.SHIFT_DIALOG_EXIT,
-               on_click=onclick.on_click_exit,
-               result=True),
+        Row(Cancel(Const("<<"),
+                   id=constants.ShiftDialogId.SHIFT_DIALOG_EXIT,
+                   on_click=onclick.on_click_exit,
+                   result=True),
+            Button(Const("💬"),
+                   id=constants.ShiftDialogId.SEND_TO_JOURNAL,
+                   on_click=onclick.on_send_to_journal)
+            ),
         state=ShiftMenu.select_shift,
         getter=getters.get_shift_list
     )

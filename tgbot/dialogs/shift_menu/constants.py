@@ -44,6 +44,7 @@ class ShiftDialogId(str, Enum):
     DCT_LIST = "sdi22"
     ENTER_MATERIAL_QUANTITY = "sdi23"
     ENTER_PRODUCT_BAG_QUANTITY = "sdi24"
+    SEND_TO_JOURNAL = "sdi25"
 
     def __str__(self) -> str:
         return str.__str__(self)

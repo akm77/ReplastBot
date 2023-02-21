@@ -8,7 +8,8 @@ from aiogram.types import CallbackQuery
 from . import constants
 from .states import ShiftMenu
 from ...config import Config
-from ...models.erp_shift import get_shift_row_number_on_date, upsert_shift_staff, shift_create, update_shift_activities
+from ...models.erp_shift import get_shift_row_number_on_date, upsert_shift_staff, shift_create, update_shift_activities, \
+    shift_read
 from ...widgets.aiogram_dialog import DialogManager
 from ...widgets.aiogram_dialog.context.events import ChatEvent
 from ...widgets.aiogram_dialog.widgets.kbd import ManagedScrollingGroupAdapter, Button, Select, ScrollingGroup, \
@@ -42,6 +43,43 @@ async def on_date_selected(c: CallbackQuery, widget: Any,
 
 async def on_click_exit(c: ChatEvent, widget: Button, manager: DialogManager):
     await c.message.delete()
+
+
+async def on_send_to_journal(c: ChatEvent, widget: Button, manager: DialogManager):
+    state = {'ok': '✅', 'todo': '‼️', 'back': '📛'}
+
+    ctx = manager.current_context()
+    session = manager.data.get("session")
+    config: Config = manager.data.get("config")
+    journal_chat = config.misc.journal_chat
+    shift_date = datetime.date.fromisoformat(ctx.dialog_data.get("shift_date"))
+    shift_number = ctx.dialog_data.get("shift_number")
+    shift = await shift_read(session,
+                             date=shift_date,
+                             number=int(shift_number))
+    shift_text = [f"{shift.date: %d.%m.%Y} смена: {shift.number} ({shift.duration} ч)\n{'-' * 30}"]
+    shift_text += [f"{'=' * 5} ПЕРСОНАЛ {'=' * 5}"]
+    shift_text += [f"#{i} {employee.employee.name} - {employee.hours_worked} ч"
+                   for i, employee in enumerate(shift.shift_staff, start=1)]
+    shift_text += [f"{'=' * 5} РАБОТЫ {'=' * 5}"]
+    shift_text += [f"#{activity.line_number} {activity.activity.name} {'(' + activity.comment + ')' if activity.comment else ''}"
+                   for activity in shift.shift_activities]
+    shift_text += [f"{'=' * 5} ПРОДУКЦИЯ {'=' * 5}"]
+    shift_text += [f"#{bn.batch_number if (bn := product.product_butch_number) else ''} "
+                   f"{product.product.name} ({product.product.product_type.name})- "
+                   f"{product.quantity} {product.product.uom_code} "
+                   f"{state[product.state]}"
+                   f" {'(' + product.comment + ')' if product.comment else ''}"
+                   for product in shift.shift_products]
+    shift_text += [f"{'=' * 5} СЫРЬЁ {'=' * 5}"]
+    shift_text += [f"#{material.line_number} {material.material.name} "
+                   f"({material.material.material_type.name}) - "
+                   f"{material.quantity} {material.material.uom_code} "
+                   f"{'✅' if material.is_processed else '‼️'}"
+                   f" {'(' + material.comment + ')' if material.comment else ''}"
+                   for material in shift.shift_materials]
+    message_text = "\n".join(shift_text)
+    await c.message.bot.send_message(chat_id=journal_chat, text=message_text)
 
 
 async def on_enter_page(c: ChatEvent, adapter: ManagedScrollingGroupAdapter, manager: DialogManager):
