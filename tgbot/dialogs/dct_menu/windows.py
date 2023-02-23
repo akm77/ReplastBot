@@ -1,4 +1,4 @@
-from . import keyboards, states, onclick, getters, events, constants
+from . import keyboards, states, onclick, getters, events, constants, whenables
 from .keyboards import simple_dct_items_kbd
 from ...widgets.aiogram_dialog import Window
 from ...widgets.aiogram_dialog.widgets.input import TextInput
@@ -40,6 +40,11 @@ def show_dct_item_window():
                      id=constants.DctMenuIds.DCT_ITEM_EDIT_BUTTON,
                      state=states.DictMenuStates.edit_dct_item,
                      on_click=onclick.on_edit_dct_item),
+            SwitchTo(Const("🔢"),
+                     id=constants.DctMenuIds.DCT_ITEM_EDIT_DIGITAL_VALUE,
+                     state=states.DictMenuStates.edit_dct_item,
+                     on_click=onclick.on_edit_dct_item,
+                     when=whenables.is_material),
             Button(Const("❌"),
                    id=constants.DctMenuIds.DCT_ITEM_DELETE_BUTTON,
                    on_click=onclick.on_delete_dct_item),

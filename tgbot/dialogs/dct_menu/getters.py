@@ -17,10 +17,16 @@ async def get_simple_dct_items(dialog_manager: DialogManager, **middleware_data)
 
 
 async def get_dct_item(dialog_manager: DialogManager, **middleware_data):
+    INSERT_PROMPT = ("*Создание новой записи*\nВведите название элемента и комментарий к нему.\n"
+                    "Используйте * как разделитель названия и комментария👇")
+    UPDATE_PROMPT = ("Введите название элемента и комментарий к нему.\n"
+                     "Используйте * как разделитель названия и комментария👇")
+
     session = middleware_data.get('session')
     ctx = dialog_manager.current_context()
     ctx.widget_data.update()
-    dct = DICT_FROM_NAME.get(ctx.dialog_data.get("dct"))
+    dct_name = ctx.dialog_data.get("dct")
+    dct = DICT_FROM_NAME.get(dct_name)
     item_id = int(i) if (i := ctx.dialog_data.get("dct_item_id")) else 0
     dct_item = ""
     if item_id and dct.hr_names.get("type") == DictType.SIMPLE:
@@ -29,15 +35,19 @@ async def get_dct_item(dialog_manager: DialogManager, **middleware_data):
         dct_item = (f"#{db_dct_item.id} {db_dct_item.name} "
                     f"{'(' + db_dct_item.comment + ')' if db_dct_item.comment else ''} "
                     f"{'🔔' if db_dct_item.is_active else '🔕'}\n")
-        if ctx.dialog_data.get("dct_edit_mode"):
-            dct_item += ("Введите название элемента и комментарий к нему.\n"
-                         "Используйте * как разделитель названия и комментария👇")
-
     elif item_id and dct.hr_names.get("type") == DictType.COMPLEX:
-        pass
+        if dct_name == "ERPContractor":
+            db_dct_item = await dct_read(Session=session, table_class=dct, id=item_id, joined_load=dct.city)
+        elif dct_name == "ERPUnitOfMeasurement":
+            db_dct_item = await dct_read(Session=session, table_class=dct, id=item_id)
+        elif dct_name == "ERPMaterial":
+            db_dct_item = await dct_read(Session=session, table_class=dct, id=item_id, joined_load=dct.material_type)
+        elif dct_name == "ERPProduct":
+            db_dct_item = await dct_read(Session=session, table_class=dct, id=item_id, joined_load=dct.product_type)
     elif not item_id and dct.hr_names.get("type") == DictType.SIMPLE:
-        dct_item = ("*Создание новой записи*\nВведите название элемента и комментарий к нему.\n"
-                    "Используйте * как разделитель названия и комментария👇")
+        dct_item = INSERT_PROMPT
     elif not item_id and dct.hr_names.get("type") == DictType.COMPLEX:
         pass
+    if ctx.dialog_data.get("dct_edit_mode"):
+        dct_item += UPDATE_PROMPT
     return {"dct_item": dct_item}
