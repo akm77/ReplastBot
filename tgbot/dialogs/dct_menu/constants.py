@@ -10,6 +10,7 @@ class DctMenuIds(str, Enum):
     DCT_ITEM_DELETE_BUTTON = "dmi05"
     DCT_ITEM_CONTENT = "dmi06"
     ADD_DCT_ITEM = "dmi07"
+    DCT_ITEM_EDIT_DIGITAL_VALUE = "dmi08"
 
     def __str__(self) -> str:
         return str.__str__(self)
