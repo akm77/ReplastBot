@@ -65,6 +65,7 @@ class ERPUnitOfMeasurement(ERPSimpleDict):
     __tablename__ = "erp_uom"
 
     code = Column(String(length=25), nullable=False, index=True, unique=True)
+
     @declared_attr
     def hr_names(self):
         return {"type": DictType.COMPLEX,
@@ -137,7 +138,8 @@ class ERPContractor(ERPSimpleDict):
 
 
 DICT_LIST = [ERPCity, ERPContractor, ERPEmployee, ERPActivity, ERPUnitOfMeasurement, ERPMaterialType,
-             ERPMaterial, ERPProductType,  ERPProduct]
+             ERPMaterial, ERPProductType, ERPProduct]
+DICT_FROM_NAME = {dct.__name__: dct for dct in DICT_LIST}
 
 
 async def dct_create(Session: sessionmaker, table_class: Base, **kwargs):
@@ -187,7 +189,7 @@ async def dct_delete(Session: sessionmaker, table_class: Base, **kwargs):
     return True if result.rowcount else False
 
 
-async def dct_list(Session: sessionmaker, table_class: Base, joined_load=None, **kwargs):
+async def dct_list(Session: sessionmaker, table_class: Base, joined_load=None, order_by_name=False, **kwargs):
     async with Session() as session:
         statement = select(table_class)
         if kwargs.get('id'):
@@ -200,5 +202,7 @@ async def dct_list(Session: sessionmaker, table_class: Base, joined_load=None, *
             statement = statement.where(table_class.is_active == kwargs['is_active'])
         if joined_load is not None:
             statement = statement.options(joinedload(joined_load, innerjoin=True))
+        if order_by_name:
+            statement = statement.order_by(table_class.name)
         result = await session.execute(statement)
         return result.scalars().all()
