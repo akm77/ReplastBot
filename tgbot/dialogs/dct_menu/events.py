@@ -48,14 +48,14 @@ async def on_success_enter_dct_item(c: ChatEvent, widget: TextInput, manager: Di
                                  name=name,
                                  comment=comment)
             except Exception as e:
-                logger.error("Error occurred while creating bew record in dictionary %s. %r",
+                logger.error("Error occurred while creating new record in dictionary %s. %r",
                              ctx.dialog_data.get("dct"), e)
     ctx.dialog_data.pop("dct_edit_mode", None)
-    await manager.switch_to(states.DictMenuStates.show_simple_dct)
+    await manager.switch_to(states.DictMenuStates.show_dct)
 
 
 async def on_error_enter_dct_item(c: ChatEvent, widget: TextInput, manager: DialogManager):
     ctx = manager.current_context()
     ctx.dialog_data.pop("dct_item_id", None)
     ctx.dialog_data.pop("dct_edit_mode", None)
-    await manager.switch_to(states.DictMenuStates.show_simple_dct)
+    await manager.switch_to(states.DictMenuStates.show_dct)

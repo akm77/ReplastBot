@@ -1,9 +1,9 @@
 import operator
 
-from . import constants, onclick
-from ...widgets.aiogram_dialog.widgets.kbd import ScrollingGroup, Button, Cancel, Select
-from ...widgets.aiogram_dialog.widgets.text import Const, Format
+from . import constants
 from ...models.erp_dict import DICT_LIST
+from ...widgets.aiogram_dialog.widgets.kbd import ScrollingGroup, Button, Select
+from ...widgets.aiogram_dialog.widgets.text import Const, Format
 
 
 def get_dct_buttons(on_click):
@@ -23,7 +23,7 @@ def dct_list_kbd(on_click, on_page_changed=None, on_enter_page=None):
     )
 
 
-def simple_dct_items_kbd(on_click, on_page_changed=None, on_enter_page=None):
+def dct_items_kbd(on_click, on_page_changed=None, on_enter_page=None):
     return ScrollingGroup(
         Select(
             Format("{item[0]}"),

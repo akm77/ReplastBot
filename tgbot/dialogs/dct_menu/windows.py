@@ -1,5 +1,5 @@
 from . import keyboards, states, onclick, getters, events, constants, whenables
-from .keyboards import simple_dct_items_kbd
+from .keyboards import dct_items_kbd
 from ...widgets.aiogram_dialog import Window
 from ...widgets.aiogram_dialog.widgets.input import TextInput
 from ...widgets.aiogram_dialog.widgets.kbd import Cancel, Row, Checkbox, Button, SwitchTo, Back
@@ -15,16 +15,16 @@ def dct_menu_window():
     )
 
 
-def show_simple_dct_window():
+def show_dct_window():
     return Window(
         Format(text="Справочник {dct_name}"),
-        simple_dct_items_kbd(on_click=onclick.on_dct_item_selected),
+        dct_items_kbd(on_click=onclick.on_dct_item_selected),
         Row(Back(Const("<<")),
             Button(Const("＋"),
                    id=constants.DctMenuIds.ADD_DCT_ITEM,
                    on_click=onclick.on_new_dct_item)),
-        state=states.DictMenuStates.show_simple_dct,
-        getter=getters.get_simple_dct_items
+        state=states.DictMenuStates.show_dct,
+        getter=getters.get_dct_items
     )
 
 

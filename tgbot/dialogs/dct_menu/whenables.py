@@ -5,4 +5,4 @@ from ...widgets.aiogram_dialog.widgets.when import Whenable
 
 
 def is_material(data: Dict, widget: Whenable, manager: DialogManager):
-    return data.get("name") == "Tishka17"
+    return data.get("dct") == "ERPMaterial"

@@ -13,8 +13,8 @@ async def on_select_dct(c: CallbackQuery, button: Button, manager: DialogManager
     ctx.dialog_data.update(dct=button.widget_id)
 
     dct = DICT_FROM_NAME.get(button.widget_id)
-    if dct.hr_names.get("type") == DictType.SIMPLE:
-        await manager.switch_to(states.DictMenuStates.show_simple_dct)
+    # if dct.hr_names.get("type") == DictType.SIMPLE:
+    await manager.switch_to(states.DictMenuStates.show_dct)
 
 
 async def on_new_dct_item(c: CallbackQuery, button: Button, manager: DialogManager):
@@ -37,7 +37,7 @@ async def on_delete_dct_item(c: CallbackQuery, button: Button, manager: DialogMa
     item_id = int(i) if (i := ctx.dialog_data.get("dct_item_id")) else 0
     await dct_delete(Session=session, table_class=dct, id=item_id)
     if dct.hr_names.get("type") == DictType.SIMPLE:
-        await manager.switch_to(states.DictMenuStates.show_simple_dct)
+        await manager.switch_to(states.DictMenuStates.show_dct)
 
 
 async def on_dct_item_selected(c: CallbackQuery, widget: ManagedWidgetAdapter[Select], manager: DialogManager,
