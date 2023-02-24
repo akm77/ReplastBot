@@ -56,7 +56,15 @@ async def on_success_enter_shift_duration(c: ChatEvent, widget: TextInput, manag
                        duration=shift_duration)
     ctx.dialog_data.update(shift_duration=value)
     await manager.switch_to(ShiftMenu.select_shift)
-    # await c.delete()
+    await c.delete()
+
+
+async def on_error_enter_shift_duration(c: ChatEvent, widget: TextInput, manager: DialogManager):
+    ctx = manager.current_context()
+    ctx.dialog_data.pop("shift_date", None)
+    ctx.dialog_data.pop("shift_number", None)
+    await manager.switch_to(ShiftMenu.select_shift)
+    await c.delete()
 
 
 async def on_success_enter_hours_worked(c: ChatEvent, widget: TextInput, manager: DialogManager, value):
@@ -78,7 +86,12 @@ async def on_success_enter_hours_worked(c: ChatEvent, widget: TextInput, manager
 
 
 async def on_error_enter_hours_worked(c: ChatEvent, widget: TextInput, manager: DialogManager):
-    pass
+    ctx = manager.current_context()
+    ctx.dialog_data.pop("shift_date", None)
+    ctx.dialog_data.pop("shift_number", None)
+    ctx.dialog_data.pop("employee_id", None)
+    await manager.switch_to(ShiftMenu.select_shift)
+    await c.delete()
 
 
 async def on_success_enter_activity_comment(c: ChatEvent, widget: TextInput, manager: DialogManager, value):
@@ -87,17 +100,23 @@ async def on_success_enter_activity_comment(c: ChatEvent, widget: TextInput, man
     shift_date = datetime.date.fromisoformat(ctx.dialog_data.get("shift_date"))
     shift_number = int(ctx.dialog_data.get("shift_number"))
     line_number = int(ctx.dialog_data.get("activity_line_number"))
+    comment = value if value != "*-" else None
     await set_shift_activity_comment(session,
                                      shift_date=shift_date,
                                      shift_number=shift_number,
                                      line_number=line_number,
-                                     comment=value)
+                                     comment=comment)
     await manager.switch_to(ShiftMenu.select_shift)
     await c.delete()
 
 
 async def on_error_enter_activity_comment(c: ChatEvent, widget: TextInput, manager: DialogManager):
-    pass
+    ctx = manager.current_context()
+    ctx.dialog_data.pop("shift_date", None)
+    ctx.dialog_data.pop("shift_number", None)
+    ctx.dialog_data.pop("activity_line_number", None)
+    await manager.switch_to(ShiftMenu.select_shift)
+    await c.delete()
 
 
 async def on_success_enter_material_quantity(c: ChatEvent, widget: TextInput, manager: DialogManager, value):
@@ -125,10 +144,17 @@ async def on_success_enter_material_quantity(c: ChatEvent, widget: TextInput, ma
     except Exception as e:
         logger.error("Error occurred while creating material intake. %r", e)
     await manager.switch_to(ShiftMenu.select_shift)
+    await c.delete()
 
 
 async def on_error_enter_material_quantity(c: ChatEvent, widget: TextInput, manager: DialogManager, value):
-    pass
+    ctx = manager.current_context()
+    ctx.dialog_data.pop("shift_date", None)
+    ctx.dialog_data.pop("shift_number", None)
+    ctx.dialog_data.pop("material_id", None)
+    ctx.dialog_data.pop("material_line_number", None)
+    await manager.switch_to(ShiftMenu.select_shift)
+    await c.delete()
 
 
 async def on_success_enter_product_bag_quantity(c: ChatEvent, widget: TextInput, manager: DialogManager, value):
@@ -158,7 +184,15 @@ async def on_success_enter_product_bag_quantity(c: ChatEvent, widget: TextInput,
     except Exception as e:
         logger.error("Error occurred while creating product line. %r", e)
     await manager.switch_to(ShiftMenu.select_shift)
+    await c.delete()
 
 
 async def on_error_enter_product_bag_quantity(c: ChatEvent, widget: TextInput, manager: DialogManager, value):
-    pass
+    ctx = manager.current_context()
+    ctx.dialog_data.pop("shift_date", None)
+    ctx.dialog_data.pop("shift_number", None)
+    ctx.dialog_data.pop("product_id", None)
+    ctx.dialog_data.pop("product_line_number", None)
+    await manager.switch_to(ShiftMenu.select_shift)
+    await c.delete()
+

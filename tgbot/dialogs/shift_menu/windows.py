@@ -46,7 +46,8 @@ def set_shift_duration_window():
         Format("Смена 👇\nДата: {shift_date} номер: {shift_number} время: {shift_duration} ч"),
         TextInput(id=constants.ShiftDialogId.ENTER_SHIFT_DURATION,
                   type_factory=float,
-                  on_success=events.on_success_enter_shift_duration),
+                  on_success=events.on_success_enter_shift_duration,
+                  on_error=events.on_error_enter_shift_duration),
         state=ShiftMenu.edit_shift_duration,
         getter=getters.get_selected_shift
     )
@@ -134,7 +135,8 @@ def set_activity_comment():
     return Window(
         Format("Текущая смена☞ дата: {shift_date} номер: {shift_number} время: {shift_duration} ч\n"
                "Работа - {activity_name}.\n"
-               "👇Комментарий: {activity_comment}.👇"),
+               "Комментарий: {activity_comment}.\n"
+               "👇Введите комментарий. Убрать комментарий ☞ *-👇"),
         TextInput(id=constants.ShiftDialogId.ENTER_ACTIVITY_COMMENT,
                   type_factory=str,
                   on_success=events.on_success_enter_activity_comment,
