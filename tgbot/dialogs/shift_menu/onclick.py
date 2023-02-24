@@ -48,6 +48,8 @@ async def on_click_exit(c: ChatEvent, widget: Button, manager: DialogManager):
 async def on_send_to_journal(c: ChatEvent, widget: Button, manager: DialogManager):
     state = {'ok': '✅', 'todo': '‼️', 'back': '📛'}
 
+    config: Config = manager.data.get("config")
+    shift_duration = config.misc.shift_duration
     ctx = manager.current_context()
     session = manager.data.get("session")
     config: Config = manager.data.get("config")
@@ -57,21 +59,22 @@ async def on_send_to_journal(c: ChatEvent, widget: Button, manager: DialogManage
     shift = await shift_read(session,
                              date=shift_date,
                              number=int(shift_number))
-    shift_text = [f"{shift.date: %d.%m.%Y} смена: {shift.number} ({shift.duration} ч)\n{'-' * 30}"]
-    shift_text += [f"{'=' * 5} ПЕРСОНАЛ {'=' * 5}"]
-    shift_text += [f"#{i} {employee.employee.name} - {employee.hours_worked} ч"
+    shift_text = [f"<b>{shift.date: %d.%m.%Y}</b>"]
+    shift_text += [f"Смена: {shift.number} {'(' + shift.duration + ' ч)' if shift_duration != shift.duration else ''}"]
+    shift_text += [f"\n<b>ПЕРСОНАЛ</b>"]
+    shift_text += [f"#{i} {employee.employee.name} {'(' + employee.hours_worked + ' ч)' if shift_duration !=employee.hours_worked else ''}"
                    for i, employee in enumerate(shift.shift_staff, start=1)]
-    shift_text += [f"{'=' * 5} РАБОТЫ {'=' * 5}"]
+    shift_text += [f"\n<b>РАБОТЫ</b>"]
     shift_text += [f"#{activity.line_number} {activity.activity.name} {'(' + activity.comment + ')' if activity.comment else ''}"
                    for activity in shift.shift_activities]
-    shift_text += [f"{'=' * 5} ПРОДУКЦИЯ {'=' * 5}"]
+    shift_text += [f"\n<b>ПРОДУКЦИЯ</b>"]
     shift_text += [f"#{bn.batch_number if (bn := product.product_butch_number) else ''} "
                    f"{product.product.name} ({product.product.product_type.name})- "
                    f"{product.quantity} {product.product.uom_code} "
                    f"{state[product.state]}"
                    f" {'(' + product.comment + ')' if product.comment else ''}"
                    for product in shift.shift_products]
-    shift_text += [f"{'=' * 5} СЫРЬЁ {'=' * 5}"]
+    shift_text += [f"\n<b>СЫРЬЁ</b>"]
     shift_text += [f"#{material.line_number} {material.material.name} "
                    f"({material.material.material_type.name}) - "
                    f"{material.quantity} {material.material.uom_code} "
