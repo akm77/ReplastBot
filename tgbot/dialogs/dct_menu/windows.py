@@ -15,15 +15,30 @@ def dct_menu_window():
     )
 
 
-def show_dct_window():
+def show_dct_window(state):
     return Window(
         Format(text="Справочник {dct_name}"),
         dct_items_kbd(on_click=onclick.on_dct_item_selected),
         Row(Back(Const("<<")),
             Button(Const("＋"),
                    id=constants.DctMenuIds.ADD_DCT_ITEM,
-                   on_click=onclick.on_new_dct_item)),
-        state=states.DictMenuStates.show_dct,
+                   on_click=onclick.on_new_dct_item),
+            when=whenables.is_show_mode),
+        state=state,
+        getter=getters.get_dct_items
+    )
+
+
+def lookup_dct_window(state):
+    return Window(
+        Format(text="Справочник {dct_name}"),
+        dct_items_kbd(on_click=onclick.on_dct_item_selected),
+        Row(Back(Const("<<")),
+            Button(Const("＋"),
+                   id=constants.DctMenuIds.ADD_DCT_ITEM,
+                   on_click=onclick.on_new_dct_item),
+            when=whenables.is_show_mode),
+        state=state,
         getter=getters.get_dct_items
     )
 

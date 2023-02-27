@@ -125,14 +125,10 @@ class ERPContractor(ERPSimpleDict):
 
     @declared_attr
     def hr_names(self):
-        return {"type": DictType.COMPLEX,
+        return {"type": DictType.SIMPLE,
                 "table_name": "Контрагент",
-                "name_name": "Название",
-                "lookup_name": "название города"}
+                "name_name": "Название"}
 
-    city_id = Column(Integer,
-                     ForeignKey('erp_city.id', ondelete="RESTRICT", onupdate="CASCADE"))
-    city = relationship("ERPCity", backref=backref("erp_contractor", uselist=False))
     is_provider = Column(Boolean, nullable=False, server_default=expression.true())
     is_buyer = Column(Boolean, nullable=False, server_default=expression.false())
 

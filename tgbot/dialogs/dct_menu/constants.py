@@ -16,10 +16,11 @@ class DctMenuIds(str, Enum):
         return str.__str__(self)
 
 
-class DctEditMode(str, Enum):
+class DctMode(str, Enum):
     NEW_RECORD = "dem00"
     UPDATE_RECORD = "dem02"
     DELETE_RECORD = "dmi03"
+    SELECT_RECORD = "dmi03"
 
     def __str__(self) -> str:
         return str.__str__(self)
