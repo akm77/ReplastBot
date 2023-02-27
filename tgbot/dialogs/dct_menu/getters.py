@@ -22,12 +22,7 @@ async def get_dct_items(dialog_manager: DialogManager, **middleware_data):
                                   table_class=dct,
                                   joined_load=joined_load,
                                   order_by_name=True)
-    if dct_name == "ERPContractor":
-        items = [(f"{item.name} {'(' + item.comment + ')' if item.comment else ''} "
-                  f"{'🔔' if item.is_active else '🔕'}",
-                  item.id) for item in db_dct_items]
-
-    elif dct_name == "ERPMaterial":
+    if dct_name == "ERPMaterial":
         items = [(f"{item.name} [{item.material_type.name}], ♻️ {item.impurity}% "
                   f"{'(' + item.comment + ')' if item.comment else ''} "
                   f"{'🔔' if item.is_active else '🔕'}",
@@ -67,9 +62,7 @@ async def get_dct_item(dialog_manager: DialogManager, **middleware_data):
     joined_load = None
     if item_id:
         if dct.hr_names.get("type") == DictType.COMPLEX:
-            if dct_name == "ERPContractor":
-                joined_load = dct.city
-            elif dct_name == "ERPMaterial":
+            if dct_name == "ERPMaterial":
                 joined_load = dct.material_type
             elif dct_name == "ERPProduct":
                 joined_load = dct.product_type
