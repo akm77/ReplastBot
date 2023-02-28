@@ -82,7 +82,7 @@ class ERPMaterial(ERPSimpleDict):
         return {"type": DictType.COMPLEX,
                 "table_name": "Сырье",
                 "name_name": "Название",
-                "lookup_name": "тип сырья"}
+                "lookup": ERPMaterialType}
 
     material_type_id = Column(Integer,
                               ForeignKey('erp_material_type.id', ondelete="RESTRICT", onupdate="CASCADE"))
@@ -107,7 +107,7 @@ class ERPProduct(ERPSimpleDict):
         return {"type": DictType.COMPLEX,
                 "table_name": "Продукция",
                 "name_name": "Название",
-                "lookup_name": "тип продукции"}
+                "lookup": ERPProductType}
 
 
 class ERPActivity(ERPSimpleDict):

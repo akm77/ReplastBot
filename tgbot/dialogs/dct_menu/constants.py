@@ -11,16 +11,11 @@ class DctMenuIds(str, Enum):
     DCT_ITEM_CONTENT = "dmi06"
     ADD_DCT_ITEM = "dmi07"
     DCT_ITEM_EDIT_DIGITAL_VALUE = "dmi08"
-
-    def __str__(self) -> str:
-        return str.__str__(self)
-
-
-class DctMode(str, Enum):
-    NEW_RECORD = "dem00"
-    UPDATE_RECORD = "dem02"
-    DELETE_RECORD = "dmi03"
-    SELECT_RECORD = "dmi03"
+    SWITCH_TO_SHOW_DCT = "dmi09"
+    CONTENT_TYPE_FLOAT = "dmi10"
+    CONTENT_TYPE_STR = "dmi11"
+    IS_PROVIDER_STATE = "dmi12"
+    IS_BUYER_STATE = "dmi13"
 
     def __str__(self) -> str:
         return str.__str__(self)

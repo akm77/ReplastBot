@@ -17,21 +17,7 @@ def dct_menu_window():
 
 def show_dct_window(state):
     return Window(
-        Format(text="Справочник {dct_name}"),
-        dct_items_kbd(on_click=onclick.on_dct_item_selected),
-        Row(Back(Const("<<")),
-            Button(Const("＋"),
-                   id=constants.DctMenuIds.ADD_DCT_ITEM,
-                   on_click=onclick.on_new_dct_item),
-            when=whenables.is_show_mode),
-        state=state,
-        getter=getters.get_dct_items
-    )
-
-
-def lookup_dct_window(state):
-    return Window(
-        Format(text="Справочник {dct_name}"),
+        Format(text="{dct_action} {dct_name}"),
         dct_items_kbd(on_click=onclick.on_dct_item_selected),
         Row(Back(Const("<<")),
             Button(Const("＋"),
@@ -51,19 +37,32 @@ def show_dct_item_window():
                      id=constants.DctMenuIds.DCT_ITEM_STATE,
                      on_state_changed=events.dct_item_state_changed,
                      default=True),
-            SwitchTo(Const("✍️"),
-                     id=constants.DctMenuIds.DCT_ITEM_EDIT_BUTTON,
-                     state=states.DictMenuStates.edit_dct_item,
-                     on_click=onclick.on_edit_dct_item),
-            SwitchTo(Const("🔢"),
-                     id=constants.DctMenuIds.DCT_ITEM_EDIT_DIGITAL_VALUE,
-                     state=states.DictMenuStates.edit_dct_item,
-                     on_click=onclick.on_edit_dct_item,
-                     when=whenables.is_material),
+            Button(Const("✍️"),
+                   id=constants.DctMenuIds.DCT_ITEM_EDIT_BUTTON,
+                   on_click=onclick.on_edit_dct_item),
+            Button(Const("🔢"),
+                   id=constants.DctMenuIds.DCT_ITEM_EDIT_DIGITAL_VALUE,
+                   on_click=onclick.on_edit_dct_item,
+                   when=whenables.is_material),
+            Checkbox(Const("🚛 ✓"),
+                     Const("🚛 ☐ "),
+                     id=constants.DctMenuIds.IS_PROVIDER_STATE,
+                     on_state_changed=events.dct_item_state_changed,
+                     default=True,
+                     when=whenables.is_contractor),
+            Checkbox(Const("🛒 ✓"),
+                     Const("🛒 ☐ "),
+                     id=constants.DctMenuIds.IS_BUYER_STATE,
+                     on_state_changed=events.dct_item_state_changed,
+                     default=True,
+                     when=whenables.is_contractor),
             Button(Const("❌"),
                    id=constants.DctMenuIds.DCT_ITEM_DELETE_BUTTON,
                    on_click=onclick.on_delete_dct_item),
-            Back(Const("<<"))),
+            SwitchTo(Const("<<"),
+                     id=constants.DctMenuIds.SWITCH_TO_SHOW_DCT,
+                     state=states.DictMenuStates.show_dct),
+            ),
         state=states.DictMenuStates.show_dct_item,
         getter=getters.get_dct_item
     )
