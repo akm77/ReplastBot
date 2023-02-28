@@ -88,6 +88,8 @@ async def get_dct_item(dialog_manager: DialogManager, **middleware_data):
             elif dct_name == "ERPProduct":
                 dct_item += f"Тип: {db_dct_item.material_type.name}"
             elif dct_name == "ERPContractor":
+                ctx.widget_data[constants.DctMenuIds.IS_PROVIDER_STATE] = db_dct_item.is_provider if db_dct_item else False
+                ctx.widget_data[constants.DctMenuIds.IS_BUYER_STATE] = db_dct_item.is_buyer if db_dct_item else False
                 dct_item += f"Поставщик: {'🚛' if db_dct_item.is_provider else ''}\n"
                 dct_item += f"Покупатель: {' 🛒' if db_dct_item.is_buyer else ''}\n"
 
