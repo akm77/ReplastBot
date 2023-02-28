@@ -10,7 +10,6 @@ from tgbot.config import load_config
 from tgbot.dialogs import setup_dialogs
 from tgbot.filters.admin import AdminFilter
 from tgbot.handlers.admin import register_admin
-from tgbot.handlers.dict_setup import register_dict_setup
 from tgbot.handlers.echo import register_echo
 from tgbot.handlers.google_sheets_commands import register_sheet_commands
 from tgbot.handlers.user import register_user
@@ -31,7 +30,6 @@ def register_all_filters(dp):
 def register_all_handlers(dp):
     register_admin(dp)
     register_user(dp)
-    register_dict_setup(dp)
     register_sheet_commands(dp)
     register_echo(dp)
 
