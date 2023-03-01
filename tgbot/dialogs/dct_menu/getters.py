@@ -95,7 +95,8 @@ async def get_dct_item(dialog_manager: DialogManager, **middleware_data):
 
         except Exception as e:
             logger.error("Error while construct dictionary item. %r", e)
-        dct_item += UPDATE_PROMPT
+        if ctx.state == states.DictMenuStates.edit_dct_item:
+            dct_item += UPDATE_PROMPT
     else:
         if dct_name in ("ERPMaterial", "ERPProduct"):
             item_id = int(ctx.dialog_data.get("lookup_item_id"))
