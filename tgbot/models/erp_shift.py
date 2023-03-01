@@ -826,6 +826,11 @@ def get_cte_product_states():
                      select(literal("back").label("state"))).cte("states")
 
 
+def get_cte_material_intake_states():
+    return union_all(select(literal(0).label("state")),
+                     select(literal(1).label("state"))).cte("states")
+
+
 async def shift_bags_list(Session: sessionmaker) -> Optional[Result]:
     # WITH dates(date) AS (VALUES('2022-12-01')
     #                      UNION ALL
@@ -846,7 +851,7 @@ async def shift_bags_list(Session: sessionmaker) -> Optional[Result]:
     cte_date_range = select(cte_dates.c.date, cte_shift.c.shift_number).cte("date_range")
     statement = select(cte_date_range.c.date.label("shift_date"),
                        cte_date_range.c.shift_number,
-                       func.count(ERPShiftProduct.id).label("bag_num")
+                       func.count(ERPShiftProduct.product_id).label("bag_num")
                        ).join(ERPShiftProduct,
                               and_(cte_date_range.c.date == ERPShiftProduct.shift_date,
                                    cte_date_range.c.shift_number == ERPShiftProduct.shift_number),
@@ -867,18 +872,26 @@ async def shift_material_intake_list(Session: sessionmaker) -> Optional[Result]:
     # FROM erp_shift_material esm
     # JOIN erp_material em ON esm.material_id = em.id
     # group by esm.shift_date, em.name, esm.is_processed
-    statement = select(ERPShiftMaterial.shift_date,
-                       ERPMaterial.name,
+    cte_dates = await get_cte_shift_dates(Session)
+    material_intake_states = get_cte_material_intake_states()
+    cte_date_range = select(cte_dates.c.date, material_intake_states.c.state).cte("date_range")
+
+    statement = select(cte_date_range.c.date.label("shift_date"),
+                       func.ifnull(ERPMaterial.name, "я").label("name"),
                        case(
-                           (ERPShiftMaterial.is_processed == 0, 'Не принят'),
-                           (ERPShiftMaterial.is_processed == 1, 'Склад'),
+                           (cte_date_range.c.state == 0, 'Не принят'),
+                           (cte_date_range.c.state == 1, 'Склад'),
                        ).label('state'),
-                       func.sum(ERPShiftMaterial.quantity).label("quantity")
+                       func.sum(ERPShiftMaterial.quantity).label('quantity')
                        )
-    statement = statement.join(ERPShiftMaterial.material)
-    statement = statement.group_by(ERPShiftMaterial.shift_date,
+    statement = statement.join(ERPShiftMaterial, and_(cte_date_range.c.date == ERPShiftMaterial.shift_date,
+                                                      cte_date_range.c.state == ERPShiftMaterial.is_processed),
+                               isouter=True)
+    statement = statement.join(ERPMaterial, ERPMaterial.id == ERPShiftMaterial.material_id,
+                               isouter=True)
+    statement = statement.group_by(cte_date_range.c.date,
                                    ERPMaterial.name,
-                                   ERPShiftMaterial.is_processed)
+                                   cte_date_range.c.state)
     async with Session() as session:
         result = await session.execute(statement)
         return result
@@ -918,7 +931,7 @@ async def shift_production_list(Session: sessionmaker) -> Optional[Result]:
                            (cte_date_range.c.state == 'ok', 'Склад'),
                            (cte_date_range.c.state == 'back', 'Возврат'),
                        ).label('state'),
-                       func.count(ERPShiftProduct.id).label('bag_num'),
+                       func.count(ERPShiftProduct.product_id).label('bag_num'),
                        func.sum(ERPShiftProduct.quantity).label('quantity')
                        )
     statement = statement.join(ERPShiftProduct, and_(cte_date_range.c.date == ERPShiftProduct.shift_date,

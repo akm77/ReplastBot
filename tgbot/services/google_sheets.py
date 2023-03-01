@@ -117,14 +117,15 @@ async def export_production(Session: sessionmaker, google_client_manager: Asynci
     material_intake_list_header_range = "E1:H1"
     material_intake_list_header_values = [["shift_date", "name", "state", "quantity"]]
     material_intake_list_range = "E2:H"
-    material_intake_list = [[convert_date_to_gsheet(row.shift_date), row.name, row.state, float(row.quantity)]
+    material_intake_list = [[convert_date_to_gsheet(row.shift_date), row.name, row.state,
+                             float(row.quantity) if row.quantity is not None else row.quantity]
                             for row in production_db[1]]
 
     production_list_header_range = "J1:N1"
     production_list_header_values = [["shift_date", "name", "state", "bag_num", "quantity"]]
     production_list_range = "J2:N"
     production_list = [[convert_date_to_gsheet(row.shift_date), row.name, row.state, row.bag_num,
-                        float(row.quantity) if row.quantity else row.quantity]
+                        float(row.quantity) if row.quantity is not None else row.quantity]
                        for row in production_db[2]]
 
     bags_list_header_range = "P1:R1"
